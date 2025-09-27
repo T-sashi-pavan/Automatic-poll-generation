@@ -1,0 +1,367 @@
+# PollGen - Interactive Polling System
+
+PollGen (formerly Poll Automation App) is a sophisticated, open-source web application designed to intelligently generate and manage live polls in real-time during lectures, webinars, or meetings. This system features AI-powered question generation, real-time audio transcription, and comprehensive dashboard interfaces for both hosts and students — without being tied to any specific video conferencing platform.
+
+## 🔥 New Features and Changes we implemented
+
+### Frontend Enhancements
+- **Authentication System**
+  - Implemented JWT-based authentication
+  - Added password reset functionality
+  - Enhanced route protection with AuthGuard
+  
+- **Host Dashboard**
+  - Real-time audio capture and transcription
+  - AI-powered question generation interface
+  - Advanced participant management
+  - Comprehensive analytics and reports
+  - Guest session link generation
+
+- **Student Features**
+  - Interactive dashboard with real-time updates
+  - Achievement tracking system
+  - Personal profile management
+  - Real-time leaderboard integration
+  - Seamless session joining
+
+- **UI/UX Improvements**
+  - Modern glass-morphism design
+  - Responsive navigation system
+  - Enhanced loading animations
+  - Improved microphone controls
+  - Intuitive question type selectors
+
+### Backend Enhancements
+- **API Infrastructure**
+  - Robust authentication endpoints
+  - Real-time WebSocket integration
+  - Enhanced error handling
+  - Rate limiting implementation
+  - Comprehensive logging system
+
+- **Security Updates**
+  - JWT token management
+  - Enhanced input validation
+  - CORS configuration
+  - Environment variable protection
+
+- **Integration Services**
+  - Email service (Brevo/SMTP)
+  - File upload system (Cloudinary)
+  - Google API integration
+
+## ⚙️ Project Pipeline
+
+[![](https://mermaid.ink/img/pako:eNqVlVtu2zgUhrdCsCjQYqRAki3L1gAFrNtMB3HrRgEC1O4DIzERJzIpkFQTT5otdAt96QK7hJKipMTTFoX9YOicQ37nwh_kPSxYiWEIr2p2W1SIS3B6tqVA_Z4_B8u2JAzkrOUFNs4VKTbfvnz-Cv5mQvbx17Rp5YcwDHekALb96tMWnuGC8ZLQa_CRILDCJUHGhfkWfgLLTcYZlZiWwNZIzpqKUZxLjtEOc8266hds6VjNukICAzcE-fk5eJE3GBeVLZl9ju_kS7Nq2efPpe7kDxARivje1KkTR5sIFTcm7xvV-Mm_AlzkIMf8o0l7acKGFvW0jPFbxEuwjlcgrlp6IzQr3lxURDSYd9tJgRUzQ0Iu16-7BtQnaoghxT3pnCMqCk4aSRgF_-Rv33RVHaZLd0SCMyzaWnbju8CXOVNlyW50PwzEC8Hp6Qq8a7HoqH9hijnSn4fYXLf9WMCYPdmsWV2rXR3G_gHEusHU9c7gkh7XR3E5bhA_6SWv2O3hgnTTSSdBorpkeqq26hUVnYAqFTH707HoGhdPk_wkx7oVFZAM6DZ0ONvksi0x_UUSYYKGkY2CMTvU2BtVKB56GWedy32t9GzsokZCJPgKaMVfkboOn2VZGqWpJSRnNzh8FgVu7MZWwWrGR8sE7VtSyir0mjuL34WuY_G9-v_zf-RB_z0-dbIgW454x5k5s-mA761j8L3Ox-KzSeqM9DSbxY4z0HvrqOKN9ofa55mfLka6lwbJxBvovXUMXUlxqDtOp2k8kmPPnfvRQO6tY8haf0PRbuZnj-fpeEEQJePAjXUMulfd48CTNBjp2WI59_yB3lu_oT_h6ytUS_FpTnUVDhI6cEfD0R944-HIDryJHvWBJ-1GdODKhtaUF1pQXd87REr1otzrVVsoK7zDWxiqzxLxmy3c0ge1DrWS5XtawFDyFluQs_a6gurWrIWy2qZUV0tC0DVHu9HbIPqesd2wRZkwvId3MLTduXsyCRx_Og0Wk4XvTAML7mGoFHASTJzZzPecmefNfP_Bgv91COdk4c_n3mLhOGq96_sTC6pnSt12K_Mgdu-iBa-5bqavUY0N85i1VCq2Fzx8B4HXS30?type=png)](https://mermaid.live/edit#pako:eNqVlVtu2zgUhrdCsCjQYqRAki3L1gAFrNtMB3HrRgEC1O4DIzERJzIpkFQTT5otdAt96QK7hJKipMTTFoX9YOicQ37nwh_kPSxYiWEIr2p2W1SIS3B6tqVA_Z4_B8u2JAzkrOUFNs4VKTbfvnz-Cv5mQvbx17Rp5YcwDHekALb96tMWnuGC8ZLQa_CRILDCJUHGhfkWfgLLTcYZlZiWwNZIzpqKUZxLjtEOc8266hds6VjNukICAzcE-fk5eJE3GBeVLZl9ju_kS7Nq2efPpe7kDxARivje1KkTR5sIFTcm7xvV-Mm_AlzkIMf8o0l7acKGFvW0jPFbxEuwjlcgrlp6IzQr3lxURDSYd9tJgRUzQ0Iu16-7BtQnaoghxT3pnCMqCk4aSRgF_-Rv33RVHaZLd0SCMyzaWnbju8CXOVNlyW50PwzEC8Hp6Qq8a7HoqH9hijnSn4fYXLf9WMCYPdmsWV2rXR3G_gHEusHU9c7gkh7XR3E5bhA_6SWv2O3hgnTTSSdBorpkeqq26hUVnYAqFTH707HoGhdPk_wkx7oVFZAM6DZ0ONvksi0x_UUSYYKGkY2CMTvU2BtVKB56GWedy32t9GzsokZCJPgKaMVfkboOn2VZGqWpJSRnNzh8FgVu7MZWwWrGR8sE7VtSyir0mjuL34WuY_G9-v_zf-RB_z0-dbIgW454x5k5s-mA761j8L3Ox-KzSeqM9DSbxY4z0HvrqOKN9ofa55mfLka6lwbJxBvovXUMXUlxqDtOp2k8kmPPnfvRQO6tY8haf0PRbuZnj-fpeEEQJePAjXUMulfd48CTNBjp2WI59_yB3lu_oT_h6ytUS_FpTnUVDhI6cEfD0R944-HIDryJHvWBJ-1GdODKhtaUF1pQXd87REr1otzrVVsoK7zDWxiqzxLxmy3c0ge1DrWS5XtawFDyFluQs_a6gurWrIWy2qZUV0tC0DVHu9HbIPqesd2wRZkwvId3MLTduXsyCRx_Og0Wk4XvTAML7mGoFHASTJzZzPecmefNfP_Bgv91COdk4c_n3mLhOGq96_sTC6pnSt12K_Mgdu-iBa-5bqavUY0N85i1VCq2Fzx8B4HXS30)
+
+## 📁 Monorepo Project Structure (Turborepo)
+
+```
+poll-automation/
+├── apps/
+│   ├── backend/                  # Express + WebSocket backend
+│   │   ├── src/
+│   │   │   ├── transcription/    # Whisper routing + service logic
+│   │   │   ├── websocket/        # WS handlers and connections
+│   │   │   └── index.ts          # Server entry point
+│   │   └── package.json
+│   └── frontend/                 # Vite + React + TypeScript frontend
+│       ├── src/
+│       │   ├── components/       # Reusable UI components
+│       │   ├── utils/            # Microphone & upload logic
+│       │   └── main.tsx         # App entry point
+│       └── package.json
+├── services/
+│   ├── whisper/                  # Python transcription service (Faster-Whisper)
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── whisper-env/         # Virtual environment (local only)
+│   ├── pollgen-llm/              # LLM-based poll generation (local/API)
+│   │   ├── main.py
+│   │   ├── server.py             # FastAPI backend for poll generation
+│   │   └── vector.py             # Embedding-based logic
+│   └── pollgen-gemini/           # Gemini API-based poll generation
+│       ├── gemini.py
+│       └── chunker.py
+├── shared/
+│   ├── types/                    # Shared types/interfaces (TypeScript)
+│   └── utils/                    # Shared audio utilities
+├── .github/
+│   └── workflows/                # GitHub Actions (CI/CD)
+├── package.json                  # Root config with workspaces
+├── turbo.json                    # Turborepo config
+├── pnpm-workspace.yaml           # Defines all workspace packages
+├── .gitignore
+├── README.md
+```
+
+## 🚀 Getting Started
+
+### 🔧 Python Environment Setup
+
+1. **Navigate to the Whisper service folder:**
+
+```bash
+cd services/whisper
+```
+
+2. **Create and activate a Python virtual environment:**
+
+```bash
+# Windows
+python -m venv whisper-env
+whisper-env\Scripts\activate
+
+# macOS/Linux
+python3 -m venv whisper-env
+source whisper-env/bin/activate
+```
+
+3.1 **For CPU-only**
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+````
+
+This installs everything except large GPU-related packages like `torch`.
+Useful for quickly running the backend in **CPU mode** for testing or development.
+
+
+3.2 **⚡ For GPU support (CUDA 12.1)**
+
+If you have a CUDA-enabled GPU and want to use GPU acceleration:
+
+```bash
+pip install -r requirements.gpu.txt --extra-index-url https://download.pytorch.org/whl/cu121
+```
+
+This will install `torch`, `torchaudio`, and `torchvision` with CUDA 12.1 support.
+Make sure your system has the correct CUDA runtime installed.
+
+-----
+
+### 🔧 `pollgen-llm` Environment Setup
+
+1. **Navigate to the Pollgen-llm service folder:**
+
+```bash
+cd services/pollgen-llm
+
+```
+
+2.  **Create and activate a Python virtual environment:**
+    
+
+```bash
+# Windows
+python -m venv pollgenenv
+pollgenenv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv pollgenenv
+source pollgenenv/bin/activate
+
+```
+
+3.  **Install the required dependencies:**
+    
+
+```bash
+pip install -r requirements.txt
+
+```
+### 🔑 Setting up Gemini API Key
+
+1.  Go to the official Gemini developer page: [https://ai.google.dev/](https://ai.google.dev/)
+    
+2.  Sign in with your Google account and click **“Get API key”**
+    
+3.  Copy the API key and paste it into your `.env` file for `pollgen-llm` as:
+    
+
+```env
+GEMINI_API_KEY=<your key>
+
+```
+
+
+### 🧠 Setting up Local LLM (Ollama)
+
+1.  **Download and Install Ollama**
+    
+    -   Visit [https://ollama.com](https://ollama.com/) and download the installer.
+        
+    -   Follow the setup wizard to complete installation.
+     >**Once installed, Ollama will run as a background service and can be accessed via the Command Prompt (cmd) or PowerShell.**
+        
+2.  **Verify Ollama Installation**
+    
+
+```bash
+ollama --version
+
+```
+
+3.  **Pull Required Models**
+    
+
+```bash
+ollama pull llama3.2
+ollama pull mxbai-embed-large
+
+```
+
+4.  **(Optional) Confirm Model Names**
+    
+
+```bash
+ollama list
+
+```
+
+
+## 🔧 .env Configuration
+
+### `apps/backend/.env`
+
+```
+PORT=3000
+WHISPER_WS_URL=ws://localhost:8000
+```
+
+### `apps/frontend/.env`
+
+```
+VITE_BACKEND_WS_URL=ws://localhost:3000
+```
+
+### `services/whisper/.env`
+
+```
+# Configuration for the Whisper Service
+WHISPER_MODEL_SIZE=small
+BUFFER_DURATION_SECONDS=60
+# Port for the Whisper service
+WHISPER_SERVICE_PORT=8000
+
+# -------------------------------------------
+# Available Faster-Whisper model sizes:
+# 
+# 1. tiny
+# 2. base
+# 3. small
+# 4. medium
+# 5. large-v1
+# 6. large-v2
+# 7. large-v3
+```
+### `services/pollgen-llm/.env`
+
+```
+GEMINI_API_KEY=<Add your Gemini API>
+MONGO_URI="mongodb://localhost:27017"
+HOME="<Add your Home Directory where you have installed the Ollama>"
+#Example: "C:\Users\keerthana"
+
+```
+## 🔧 Updated Environment Configuration
+
+### `apps/backend/.env`
+
+```env
+PORT=5000
+MONGODB_URI=<your-mongodb-uri>
+JWT_SECRET=<your-jwt-secret>
+EMAIL_HOST=smtp-relay.brevo.com
+EMAIL_PORT=587
+EMAIL_USER=<your-email-user>
+EMAIL_PASS=<your-email-password>
+SENDER_EMAIL=<your-sender-email>
+GOOGLE_API_KEY=<your-google-api-key>
+FRONTEND_URL=http://localhost:5174
+CLOUDINARY_CLOUD_NAME=<your-cloud-name>
+CLOUDINARY_API_KEY=<your-api-key>
+CLOUDINARY_API_SECRET=<your-api-secret>
+WHISPER_WS_URL=ws://localhost:8000
+```
+
+### `apps/frontend/.env`
+
+```env
+VITE_BACKEND_WS_URL=ws://localhost:5000
+VITE_API_URL=http://localhost:5000
+```
+
+## 📚 Additional Dependencies
+
+### Frontend
+- React 18+
+- TypeScript
+- Vite
+- Tailwind CSS
+- Socket.io-client
+- Axios
+- React Router DOM
+
+### Backend
+- Node.js
+- Express
+- MongoDB/Mongoose
+- JWT
+- Socket.io
+- Cloudinary
+- Nodemailer
+
+### Global Prerequisites
+**Navigate to the root directory:**
+
+Install `pnpm` and `turbo` globally (once):
+
+```bash
+npm install -g pnpm
+pnpm add -g turbo
+```
+### 1. Install dependencies
+
+```bash
+pnpm install
+```
+
+### 2. Start all dev servers
+
+```bash
+pnpm dev
+```
+This starts:
+
+* ✅ *Frontend* → [http://localhost:5173](http://localhost:5173)
+* ✅ *Backend (WebSocket server)* → ws\://localhost:3000
+* ✅ *Whisper Transcription Service* → ws\://localhost:8000 (Python FastAPI)
+
+> Make sure the Python environment is set up correctly (faster-whisper, uvicorn, etc.)
+
+## 🛆 Using Turborepo
+
+* `pnpm build` → Build all apps/services
+* `pnpm lint` → Lint all projects
+* `pnpm test` → Run tests
+* `turbo run <task>` → Run any task across monorepo
+
+
+## 🗣 Phase 1 – Transcription Pipeline
+
+> This outlines the current real-time transcription flow:
+
+1. **Frontend** records or selects a `.wav` file and sends it over WebSocket (binary + metadata).
+2. **Backend** WebSocket server receives and forwards it to the Whisper service.
+3. **Whisper Service** processes audio using Faster-Whisper and returns transcription in JSON.
+4. **Backend** sends transcription JSON back to the frontend or passes it to the LLM service.
+
+> Currently, the transcription is **not displayed** to the user – it is **used internally** to generate polls using an LLM.
+
+📅 Upcoming Phases:
+
+* Phase 2: LLM-based Poll Generation
+* Phase 3: Realtime Poll Launch and Analytics
+
