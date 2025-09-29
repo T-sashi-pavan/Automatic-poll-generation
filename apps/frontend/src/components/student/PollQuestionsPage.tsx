@@ -18,7 +18,7 @@ interface Poll {
 const PollQuestionsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { socket } = useAuth();
+  const { socket, user } = useAuth();
   const roomInfo = location.state?.roomInfo;
 
   // --- Real-time State ---
@@ -27,6 +27,8 @@ const PollQuestionsPage: React.FC = () => {
   const [isAnswered, setIsAnswered] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [totalParticipants, setTotalParticipants] = useState(0);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [roomJoined, setRoomJoined] = useState(false);
 
   // --- Gamification State ---
   const [score, setScore] = useState(0);
@@ -41,30 +43,95 @@ const PollQuestionsPage: React.FC = () => {
     }
   }, [roomInfo, navigate]);
 
+  // Check authentication - students need to be logged in to join polls
+  useEffect(() => {
+    if (!user) {
+      toast.error("Please log in first to join polls.");
+      navigate('/login?redirect=join-poll');
+    }
+  }, [user, navigate]);
+
   // Socket event listeners
   useEffect(() => {
-    if (!socket || !roomInfo) return;
-
-    console.log('🔌 PollQuestionsPage - Socket connected:', socket.connected);
-    console.log('🏠 Room info:', roomInfo);
-
-    // If socket is connected, try to join the room
-    if (socket.connected && roomInfo.code) {
-      console.log('📤 Attempting to join room from PollQuestionsPage:', roomInfo.code);
-      socket.emit('student-join-room', roomInfo.code, (response: { success?: boolean; error?: string; room?: any }) => {
-        console.log('📥 Room join response:', response);
-        if (response?.error) {
-          toast.error(`Failed to join room: ${response.error}`);
-        } else if (response?.success) {
-          console.log('✅ Successfully joined room from PollQuestionsPage');
-          toast.success(`Joined "${roomInfo.name}" successfully!`);
-        }
-      });
+    console.log('🔍 [PollQuestionsPage] useEffect triggered');
+    console.log('🔌 Socket exists:', !!socket);
+    console.log('🏠 RoomInfo exists:', !!roomInfo);
+    console.log('👤 User exists:', !!user);
+    console.log('👤 User role:', user?.role);
+    
+    if (!socket || !roomInfo) {
+      console.log('❌ Missing socket or roomInfo:', { socket: !!socket, roomInfo: !!roomInfo });
+      return;
     }
 
+    console.log('🔌 PollQuestionsPage - Socket connected:', socket.connected);
+    console.log('🔌 PollQuestionsPage - Socket ID:', socket.id);
+    console.log('🏠 Room info:', roomInfo);
+    
+    // Add additional socket connection state monitoring
+    if (!socket.connected) {
+      console.log('⏳ Socket not connected yet, waiting for connection...');
+      // Monitor socket connection state changes
+      const checkConnection = setInterval(() => {
+        if (socket.connected) {
+          console.log('✅ Socket connected during monitoring! ID:', socket.id);
+          clearInterval(checkConnection);
+        }
+      }, 1000);
+      
+      // Clean up interval after 30 seconds
+      setTimeout(() => clearInterval(checkConnection), 30000);
+    }
+
+    const attemptJoinRoom = () => {
+      if (roomInfo.code && socket.connected) {
+        console.log('📤 Attempting to join room from PollQuestionsPage:', roomInfo.code);
+        socket.emit('student-join-room', roomInfo.code, (response: { success?: boolean; error?: string; room?: any }) => {
+          console.log('📥 [STUDENT] Room join response:', response);
+          if (response?.error) {
+            toast.error(`Failed to join room: ${response.error}`);
+            setRoomJoined(false);
+          } else if (response?.success) {
+            console.log('✅ [STUDENT] Successfully joined room from PollQuestionsPage');
+            console.log('🏠 [STUDENT] Room details:', response.room);
+            setRoomJoined(true);
+            toast.success(`Joined "${roomInfo.name}" successfully!`);
+          }
+        });
+      } else {
+        console.log('⏳ Socket not ready for room join:', { 
+          hasCode: !!roomInfo.code, 
+          connected: socket.connected 
+        });
+      }
+    };
+
+    // If socket is already connected, join immediately
+    if (socket.connected) {
+      console.log('🚀 Socket already connected, joining room immediately');
+      setIsSocketConnected(true);
+      attemptJoinRoom();
+    } else {
+      console.log('⏳ Socket not connected yet, will join on connect event');
+      setIsSocketConnected(false);
+    }
+
+    // Also listen for connection event in case socket connects later
+    socket.on('connect', () => {
+      console.log('🔌 Socket connected in PollQuestionsPage, ID:', socket.id);
+      setIsSocketConnected(true);
+      attemptJoinRoom();
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Socket disconnected in PollQuestionsPage');
+      setIsSocketConnected(false);
+      setRoomJoined(false);
+    });
+
     const handlePollStarted = (pollData: Poll) => {
-      console.log('🎯 Poll started event received:', pollData);
-      console.log('📊 Poll data details:', {
+      console.log('🎯 [STUDENT] Poll started event received:', pollData);
+      console.log('📊 [STUDENT] Poll data details:', {
         id: pollData._id,
         title: pollData.title,
         options: pollData.options,
@@ -124,10 +191,12 @@ const handleSessionEnded = (data: { message: string }) => {
     socket.on('participant-list-updated', handleParticipantUpdate);
 
     return () => {
+      socket.off('connect');
+      socket.off('disconnect');
       socket.off('poll-started', handlePollStarted);
       socket.off('poll-ended', handlePollEnded);
       socket.off('meeting-ended', handleMeetingEnded);
-socket.off('session-ended', handleSessionEnded);
+      socket.off('session-ended', handleSessionEnded);
       socket.off('participant-list-updated', handleParticipantUpdate);
     };
   }, [socket, roomInfo, navigate]);
@@ -151,9 +220,14 @@ socket.off('session-ended', handleSessionEnded);
     setSelectedAnswer(index);
     
     const timeTaken = currentPoll.timerDuration - timeLeft;
-    socket.emit('student-submit-vote', { roomId: roomInfo._id, pollId: currentPoll._id, answer: option, timeTaken });
+    const voteData = { roomId: roomInfo._id, pollId: currentPoll._id, answer: option, timeTaken };
+    
+    console.log('📤 [STUDENT] Emitting student-submit-vote:', voteData);
+    console.log('🏠 [STUDENT] RoomInfo details:', roomInfo);
+    
+    socket.emit('student-submit-vote', voteData);
 
-    socket.once('vote-result', ({ isCorrect, pointsAwarded, totalScore, streak }) => {
+    socket.once('vote-result', ({ isCorrect, pointsAwarded, totalScore, streak }: any) => {
         setScore(totalScore);
         setStreak(streak);
         setShowResult(true);
@@ -171,7 +245,24 @@ socket.off('session-ended', handleSessionEnded);
   
   return (
     <div className="space-y-6">
-      {!currentPoll ? (
+      {!roomJoined ? (
+        <GlassCard className="p-8 text-center">
+            <h2 className="text-2xl font-bold text-white">
+              {!isSocketConnected ? "Connecting..." : "Joining Session..."}
+            </h2>
+            <p className="text-gray-300 mt-2">
+              Room: <span className="font-semibold text-primary-400">{roomInfo.name}</span>
+            </p>
+            <div className="mt-4 space-y-2">
+              <p className={`text-sm ${isSocketConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                🔌 Connection: {isSocketConnected ? 'Connected' : 'Connecting...'}
+              </p>
+              <p className={`text-sm ${roomJoined ? 'text-green-400' : 'text-gray-400'}`}>
+                🏠 Room: {roomJoined ? 'Joined' : 'Joining...'}
+              </p>
+            </div>
+        </GlassCard>
+      ) : !currentPoll ? (
         <GlassCard className="p-8 text-center">
             <h2 className="text-2xl font-bold text-white">You're in the session!</h2>
             <p className="text-gray-300 mt-2">Room: <span className="font-semibold text-primary-400">{roomInfo.name}</span></p>

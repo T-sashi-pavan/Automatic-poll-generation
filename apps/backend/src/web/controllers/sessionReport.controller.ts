@@ -37,10 +37,24 @@ export const getSessionReportById = async (req: Request, res: Response) => {
 export const getReportBySessionId = async (req: Request, res: Response) => {
     try {
         const { sessionId } = req.params;
+        console.log('🔍 [SessionReport] Searching for report with sessionId:', sessionId);
+        
         const report = await SessionReport.findOne({ sessionId });
-        if (!report) return res.status(404).json({ message: 'Report not found for this session.' });
+        console.log('📊 [SessionReport] Found report:', !!report);
+        
+        if (!report) {
+            console.log('❌ [SessionReport] No report found for sessionId:', sessionId);
+            return res.status(404).json({ message: 'Report not found for this session.' });
+        }
+        
+        console.log('✅ [SessionReport] Returning report data:', {
+            sessionName: report.sessionName,
+            studentCount: report.studentResults.length
+        });
+        
         res.status(200).json(report);
     } catch (error: any) {
+        console.error('❌ [SessionReport] Error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

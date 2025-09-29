@@ -295,10 +295,23 @@ export const setupWebSocket = (io: Server) => {
 
 
        socket.on('student-submit-vote', async ({ roomId, pollId, answer, timeTaken }) => {
-    if (!socket.userId) return;
+    console.log('📝 [VOTE] Received student-submit-vote:', { roomId, pollId, answer, timeTaken, userId: socket.userId });
+    
+    if (!socket.userId) {
+        console.log('❌ [VOTE] No userId in socket');
+        return;
+    }
+
+    if (!roomId) {
+        console.log('❌ [VOTE] No roomId provided');
+        return socket.emit('vote-error', { message: "Room ID is required" });
+    }
 
     const poll = await Poll.findById(pollId);
-    if (!poll) return;
+    if (!poll) {
+        console.log('❌ [VOTE] Poll not found:', pollId);
+        return;
+    }
 
     // Check if the user has already voted on this specific poll
     const existingReport = await Report.findOne({ pollId, userId: socket.userId });
@@ -313,8 +326,29 @@ export const setupWebSocket = (io: Server) => {
     const points = isCorrect ? 100 + timeBonus : 0;
     
     // Save the report
-    const report = new Report({ roomId, pollId, userId: socket.userId, answer, isCorrect, timeTaken, points });
-    await report.save();
+    console.log('💾 [VOTE] Saving report with data:', { roomId, pollId, userId: socket.userId, answer, isCorrect, timeTaken, points });
+    console.log('💾 [VOTE] Data types:', { 
+        roomIdType: typeof roomId, 
+        pollIdType: typeof pollId, 
+        userIdType: typeof socket.userId 
+    });
+    
+    try {
+        const report = new Report({ 
+            roomId: new mongoose.Types.ObjectId(roomId), 
+            pollId: new mongoose.Types.ObjectId(pollId), 
+            userId: new mongoose.Types.ObjectId(socket.userId), 
+            answer, 
+            isCorrect, 
+            timeTaken, 
+            points 
+        });
+        await report.save();
+        console.log('✅ [VOTE] Report saved successfully');
+    } catch (error) {
+        console.error('❌ [VOTE] Error saving report:', error);
+        return socket.emit('vote-error', { message: "Failed to save vote" });
+    }
 
     // --- UPGRADED RESPONSE ---
     // Now, let's calculate the user's new total score and streak for this room
@@ -453,15 +487,27 @@ socket.on('host-end-session', async (roomId: string) => {
         // This function already saves the report with the correct sessionId
         await generateAndSaveSessionReport(roomId);
 
-        // --- 3. Notify clients, NOW WITH sessionId ---
-        io.to(roomId).emit('session-ended', { 
+        const sessionId = (room._id as mongoose.Types.ObjectId | string).toString();
+
+        // --- 3. First, notify the HOST specifically (before disconnecting students) ---
+        socket.emit('session-ended-host', { 
+            message: 'Session ended successfully.',
+            sessionId: sessionId
+        });
+
+        // --- 4. Then notify all STUDENTS in the room ---
+        socket.to(roomId).emit('session-ended', { 
             message: 'The host has ended the session.',
-            sessionId: (room._id as mongoose.Types.ObjectId | string).toString() // <-- FIXED TYPE
+            sessionId: sessionId
         });
         
+        // --- 5. Disconnect all student sockets but not the host ---
         const socketsInRoom = await io.in(roomId).fetchSockets();
         for (const clientSocket of socketsInRoom) {
-            clientSocket.disconnect();
+            // Don't disconnect the host socket
+            if (clientSocket.id !== socket.id) {
+                clientSocket.disconnect();
+            }
         }
 
         console.log(`[Socket.IO] Host ${socket.userId} ended session for room ${roomId}`);
@@ -492,14 +538,23 @@ socket.on('host-end-session', async (roomId: string) => {
 
 // --- NEW HELPER FUNCTION TO BE ADDED AT THE BOTTOM OF setup.ts ---
 async function generateAndSaveSessionReport(roomId: string) {
+    console.log('📊 [SessionReport] Starting report generation for roomId:', roomId);
+    
     // Find the ended room and populate host details
     const room = await Room.findById(roomId).populate<{ hostId: typeof User.prototype }>('hostId');
-    if (!room) throw new Error("Room not found for report generation");
+    if (!room) {
+        console.log('❌ [SessionReport] Room not found for roomId:', roomId);
+        throw new Error("Room not found for report generation");
+    }
+    
+    console.log('🏠 [SessionReport] Found room:', room.name);
     
     // Get all individual poll answers for this room
     const individualReports = await Report.find({ roomId }).sort({ createdAt: 'asc' });
+    console.log('📋 [SessionReport] Found individual reports:', individualReports.length);
+    
     if (individualReports.length === 0) {
-        console.log(`No reports found for room ${roomId}, skipping summary generation.`);
+        console.log(`⚠️ [SessionReport] No reports found for room ${roomId}, skipping summary generation.`);
         return;
     }
     
@@ -560,6 +615,13 @@ async function generateAndSaveSessionReport(roomId: string) {
     }
 
     // Create and save the final summary report
+    console.log('💾 [SessionReport] Creating final report with:', {
+        sessionId: room._id,
+        sessionName: room.name,
+        hostId: room.hostId._id,
+        studentCount: studentResults.length
+    });
+    
     const finalReport = new SessionReport({
         sessionId: room._id as mongoose.Types.ObjectId,
         sessionName: room.name,
@@ -570,7 +632,8 @@ async function generateAndSaveSessionReport(roomId: string) {
     });
     
     await finalReport.save();
-    console.log(`Successfully generated summary report for session ${room.name}`);
+    console.log(`✅ [SessionReport] Successfully generated summary report for session ${room.name}`);
+    console.log(`📋 [SessionReport] Report ID: ${finalReport._id}`);
 }
 
 // // --- NEW HELPER FUNCTION TO BE ADDED AT THE BOTTOM OF setup.ts ---

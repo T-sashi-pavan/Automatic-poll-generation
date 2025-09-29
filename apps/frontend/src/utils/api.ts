@@ -186,6 +186,13 @@ export const apiService = {
   getHostSessionReports: () => api.get('/session-reports'), // Gets the list of reports
   getSessionReportById: (reportId: string) => api.get(`/session-reports/${reportId}`), // Gets a single detailed report
 
+  // Transcripts (ASR)
+  getTranscriptsByMeeting: (meetingId: string, params?: { type?: 'partial' | 'final', role?: 'host' | 'participant', participantId?: string }) => 
+    api.get(`/transcripts/${meetingId}`, { params }),
+  getFullTranscript: (meetingId: string) => api.get(`/transcripts/${meetingId}/full`),
+  exportTranscript: (meetingId: string) => api.get(`/transcripts/${meetingId}/export`, { responseType: 'blob' }),
+  getTranscriptStats: (meetingId: string) => api.get(`/transcripts/${meetingId}/stats`),
+  deleteTranscripts: (meetingId: string) => api.delete(`/transcripts/${meetingId}`),
   
   // ... any other services you have ...
 };

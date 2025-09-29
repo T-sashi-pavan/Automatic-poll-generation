@@ -58,18 +58,29 @@ const Leaderboard = () => {
     // Listen for the session ending to automatically show the new report
     if (!socket) return;
     
-    const handleSessionEnded = async ({ sessionId }: { sessionId: string }) => {
-      // Find the report that matches the ended session
-      const res = await apiService.getReportForSession(sessionId);
-      if(res.data) {
-        toast.success("Session ended. Displaying final report.");
-        handleReportClick(res.data._id, res.data); // Pass the already fetched data
+    const handleHostSessionEnded = async ({ sessionId }: { sessionId: string }) => {
+      console.log('🎯 Host session ended, fetching report:', sessionId);
+      try {
+        // Fetch the session report
+        const res = await apiService.getReportForSession(sessionId);
+        if(res.data) {
+          toast.success("Session ended. Displaying final report.");
+          handleReportClick(res.data._id, res.data); // Pass the already fetched data
+          
+          // Also refresh the reports list to include the new report
+          await fetchReports();
+        }
+      } catch (error) {
+        console.error('Failed to fetch session report:', error);
+        toast.error("Session ended but failed to load report.");
       }
     };
     
-    socket.on('session-ended', handleSessionEnded);
+    // Listen for host-specific session ended event
+    socket.on('session-ended-host', handleHostSessionEnded);
+    
     return () => {
-      socket.off('session-ended', handleSessionEnded);
+      socket.off('session-ended-host', handleHostSessionEnded);
     };
   }, [socket]);
 

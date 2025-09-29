@@ -28,6 +28,15 @@ const JoinPollPage: React.FC = () => {
     const [isJoining, setIsJoining] = useState(false);
     const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
     const [error, setError] = useState('');
+    
+    // Check authentication - students need to be logged in to join polls
+    useEffect(() => {
+        if (!user) {
+            toast.error("Please log in first to join polls.");
+            navigate('/login?redirect=join-poll');
+        }
+    }, [user, navigate]);
+    
  // --- NEW useEffect TO READ FROM URL ---
   useEffect(() => {
     // This runs once when the page loads

@@ -119,7 +119,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { io, Socket } from "socket.io-client";
+// import { io, Socket } from "socket.io-client"; // Temporarily disabled
 import { apiService } from "../utils/api"; // Make sure apiService is available
 import toast from 'react-hot-toast'; // For notifications
 
@@ -144,7 +144,7 @@ interface ActiveRoom {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  socket: Socket | null;
+  socket: any; // Socket | null; // Temporarily disabled
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -157,7 +157,7 @@ interface AuthContextType {
   activeRoom: ActiveRoom | null;
   isCreatingRoom: boolean;
   createRoom: (roomName: string) => Promise<void>;
-  destroyRoom: () => Promise<void>;
+  destroyRoom: (navigationCallback?: () => void) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -169,7 +169,7 @@ const ROOM_STORAGE_KEY = 'pollgen_active_room'; // Key to save active room in lo
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] = useState<any>(null); // Socket | null; // Temporarily disabled
   const [isLoading, setIsLoading] = useState(true);
 
   // --- NEW STATE FOR ROOM MANAGEMENT ---
@@ -204,57 +204,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // --- EFFECT 2: Manage Socket Connection and check for active session ---
   useEffect(() => {
     console.log('🔐 AuthContext useEffect - Token:', !!token, 'User:', !!user);
+    console.log('🔐 User role:', user?.role);
     
     if (token && user) {
       console.log('🔌 Creating new socket connection with token');
       console.log('🌐 Socket URL:', API_URL);
       console.log('🔑 Token length:', token.length);
+      console.log('👤 User role:', user.role);
       
-      const newSocket = io(API_URL, {
-        auth: { token },
-        transports: ['websocket', 'polling'], // Allow fallback to polling
-        timeout: 10000, // 10 second timeout
-        forceNew: true // Force new connection
-      });
-      setSocket(newSocket);
+      // Socket.IO re-enabled for poll functionality
+      // Note: Socket.IO (socket.io protocol) and ASR WebSocket (ws:// protocol) use different ports/protocols and won't conflict
+      console.log('✅ Socket.IO connection enabled for polls - separate from ASR WebSocket');
+      
+      // Import socket.io-client dynamically to avoid build issues
+      import('socket.io-client').then(({ io }) => {
+        console.log('📦 Socket.IO library loaded, creating connection...');
+        const newSocket = io(API_URL, {
+          auth: { token },
+          transports: ['polling', 'websocket'], // Use polling first to avoid ASR WebSocket conflicts
+          timeout: 10000, // 10 second timeout
+          forceNew: true, // Force new connection
+          upgrade: false // Disable WebSocket upgrade to avoid conflicts with ASR WebSocket
+        });
+        
+        console.log('🔗 Socket instance created, setting up event handlers...');
+        setSocket(newSocket);
 
-      newSocket.on('connect', () => {
-          console.log('✅ [Socket.IO] Connected with ID:', newSocket.id);
-          // --- NEW: Once connected, if user is a host, check for an active session ---
-          if (user.role === 'host') {
-            checkHostActiveSession(newSocket);
-          }
-      });
-      
-      newSocket.on('connect_error', (error) => {
-        console.log('❌ Socket connection error:', error);
-        // Retry connection after 5 seconds with limited retries
-        setTimeout(() => {
-          if (newSocket.connected === false) {
-            console.log('🔄 Retrying socket connection...');
-            newSocket.connect();
-          }
-        }, 5000);
+        newSocket.on('connect', () => {
+            console.log('✅ [Socket.IO] Connected with ID:', newSocket.id);
+            console.log('🎭 User role during connection:', user.role);
+            // --- NEW: Once connected, if user is a host, check for an active session ---
+            if (user.role === 'host') {
+              console.log('👑 Host detected, checking active session...');
+              checkHostActiveSession(newSocket);
+            } else if (user.role === 'student') {
+              console.log('🎓 Student connected successfully!');
+            }
+        });
+        
+        newSocket.on('connect_error', (error) => {
+          console.log('❌ Socket connection error:', error);
+          console.log('🔍 Error details:', error.message, error.type);
+          // Retry connection after 5 seconds with limited retries
+          setTimeout(() => {
+            if (newSocket.connected === false) {
+              console.log('🔄 Retrying socket connection...');
+              newSocket.connect();
+            }
+          }, 5000);
+        });
+
+        newSocket.on('disconnect', (reason) => {
+          console.log('🔌 Socket disconnected:', reason);
+        });
+        
+       if (user.role === 'host') {
+            newSocket.on('student-joined-notification', (data) => {
+                toast.success(data.message, {
+                    icon: '👋',
+                    position: 'top-right' // Position it nicely
+                });
+            });
+        }
       });
 
-      newSocket.on('disconnect', (reason) => {
-        console.log('🔌 Socket disconnected:', reason);
-      });
-      
-     if (user.role === 'host') {
-          newSocket.on('student-joined-notification', (data) => {
-              toast.success(data.message, {
-                  icon: '👋',
-                  position: 'top-right' // Position it nicely
-              });
-          });
-      }
       return () => {
-        newSocket.disconnect();
-
-            // --- NEW: Clean up the listener ---
-            newSocket.off('student-joined-notification');
-            setSocket(null);
+        if (socket) {
+          socket.disconnect();
+          socket.off('student-joined-notification');
+          setSocket(null);
+        }
       };
     }
   }, [token, user]); // Depend on user as well
@@ -374,7 +393,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // --- NEW HELPER AND PUBLIC FUNCTIONS FOR ROOM MANAGEMENT ---
 
-  const checkHostActiveSession = async (currentSocket: Socket) => {
+ 
+  const checkHostActiveSession = async (currentSocket: any) => {
     try {
         const response = await apiService.getActiveRoom();
         if (response.data) {
@@ -399,10 +419,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.error("Room name is required.");
       return;
     }
-    if (!socket) {
-      toast.error("Not connected to the server.");
-      return;
-    }
 
     setIsCreatingRoom(true);
     const creationToast = toast.loading("Creating session...");
@@ -411,28 +427,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newRoom = response.data;
       setActiveRoom(newRoom);
       localStorage.setItem(ROOM_STORAGE_KEY, JSON.stringify(newRoom));
-      socket.emit('host-join-room', newRoom._id); // Join socket room
+      // Skip socket emit since it's disabled
       toast.success(`Session "${roomName}" is now active!`, { id: creationToast });
     } catch (err: any) {
+      console.error('Create room error:', err);
       toast.error(err.response?.data?.message || 'Failed to create session.', { id: creationToast });
     } finally {
       setIsCreatingRoom(false);
     }
   };
 
-   const destroyRoom = async () => {
+  const destroyRoom = async (navigationCallback?: () => void) => {
     if (!activeRoom || !socket) return;
-    const destructionToast = toast.loading("Ending session and generating report...");
+    const destructionToast = toast.loading("Ending session...");
     try {
-        // This single event now triggers all backend logic
-        socket.emit('host-end-session', activeRoom._id);         
-        
-        // The backend will disconnect the socket. Here we just clear local state.
-        localStorage.removeItem(ROOM_STORAGE_KEY);
-        setActiveRoom(null);
-        toast.success("Session has been closed.", { id: destructionToast });
+      console.log('🏁 Ending session:', activeRoom._id);
+      
+      // Emit host-end-session to backend to:
+      // 1. Mark room as inactive  
+      // 2. Generate session report
+      // 3. Notify all students
+      socket.emit('host-end-session', activeRoom._id);
+      
+      // Clear local state
+      localStorage.removeItem(ROOM_STORAGE_KEY);
+      setActiveRoom(null);
+      
+      toast.success("Session ended successfully!", { id: destructionToast });
+      
+      // Navigate to leaderboard if callback provided
+      if (navigationCallback) {
+        setTimeout(() => navigationCallback(), 1000);
+      }
+      
     } catch (error) {
-        toast.error("Failed to properly end session.", { id: destructionToast });
+      console.error('Destroy room error:', error);
+      toast.error("Failed to properly end session.", { id: destructionToast });
     }
   };
 

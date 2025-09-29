@@ -4,9 +4,12 @@ import app from "./app";
 import connectDB from "./web/config/dbconnect";
 import { Server } from 'socket.io';
 import { setupWebSocket } from './websocket/setup';
+import ASRWebSocketServer from './websocket/asrHandler';
+
 const PORT = process.env.PORT || 8000;
 
 const server = http.createServer(app);
+
 // Initialize Socket.IO and attach it to the HTTP server
 const io = new Server(server, {
     cors: {
@@ -16,12 +19,16 @@ const io = new Server(server, {
 });
 setupWebSocket(io);
 
+// Initialize ASR WebSocket Server
+const asrServer = new ASRWebSocketServer(server);
+
 // Start the server after connecting to the database
 const startServer = async () => {
     try {
         await connectDB();
         server.listen(PORT, () => {
             console.log(` Server is running on http://localhost:${PORT}`);
+            console.log(`🎙️ ASR WebSocket available at ws://localhost:${PORT}/ws/asr`);
         });
     } catch (error) {
         console.error(" Failed to start server:", error);

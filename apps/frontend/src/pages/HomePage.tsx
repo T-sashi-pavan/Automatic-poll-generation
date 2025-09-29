@@ -109,7 +109,13 @@ const HomePage = () => {
             to="/login"
             className="inline-block bg-primary-500 hover:bg-primary-600 transition-all px-6 py-3 rounded-xl font-semibold shadow-md text-white text-center"
           >
-            Get Started
+            Host a Session
+          </Link>
+          <Link
+            to="/login?redirect=join-poll"
+            className="inline-block bg-green-500 hover:bg-green-600 transition-all px-6 py-3 rounded-xl font-semibold shadow-md text-white text-center"
+          >
+            Join a Poll
           </Link>
           <Link
             to="/register"

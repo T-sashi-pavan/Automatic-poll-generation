@@ -26,15 +26,22 @@ const StudentLeaderboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🎯 [StudentLeaderboard] useEffect triggered');
+    console.log('🆔 [StudentLeaderboard] sessionId from location.state:', sessionId);
+    console.log('📍 [StudentLeaderboard] Full location.state:', location.state);
+    
     if (!sessionId) {
+      console.log('❌ [StudentLeaderboard] No sessionId found');
       toast.error("Session ID not found. Cannot display report.");
       setIsLoading(false); return;
     }
 
     const fetchReport = async () => {
+      console.log('📡 [StudentLeaderboard] Fetching report for sessionId:', sessionId);
       setIsLoading(true);
       try {
         const res = await apiService.getReportForSession(sessionId);
+        console.log('✅ [StudentLeaderboard] Report fetched successfully:', res.data);
         const { studentResults } = res.data;
         setSessionName(res.data.sessionName);
         
@@ -46,8 +53,10 @@ const StudentLeaderboard: React.FC = () => {
           isCurrentUser: p.userId === user?.id,
         }));
 
+        console.log('📊 [StudentLeaderboard] Processed rankedData:', rankedData);
         setReportData(rankedData);
       } catch (err) {
+        console.error('❌ [StudentLeaderboard] Error fetching report:', err);
         toast.error("Could not load session report.");
       } finally {
         setIsLoading(false);

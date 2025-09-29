@@ -163,9 +163,33 @@ export const getLiveParticipants = async (req: Request, res: Response) => {
 export const getActiveRoomByCode = async (req: Request, res: Response) => {
     try {
         const { code } = req.params;
-        const room = await Room.findOne({ code: code.toUpperCase(), isActive: true });
-        if (!room) return res.status(404).json({ message: 'Room not found or inactive' });
-        res.status(200).json(room);
-    } catch (error: any) { res.status(500).json({ message: 'Server error' }); }
+        const room = await Room.findOne({ code, isActive: true }).populate('hostId', 'fullName email');
+        
+        if (!room) return res.status(404).json({ message: 'Room not found.' });
+        
+        res.json({
+            id: room._id,
+            name: room.name,
+            code: room.code,
+            host: room.hostId,
+            createdAt: (room as any).createdAt
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: 'Error retrieving room.', error: error.message });
+    }
 };
+
+// Add missing exports for backward compatibility
+export const createOrGetRoom = createRoom;
+export const getCurrentRoom = getActiveRoomForHost;
+export const destroyRoom = async (req: Request, res: Response) => {
+    try {
+        const hostId = (req as any).user.id;
+        const result = await Room.updateMany({ hostId, isActive: true }, { $set: { isActive: false } });
+        res.json({ message: 'Room destroyed', modifiedCount: result.modifiedCount });
+    } catch (error: any) {
+        res.status(500).json({ message: 'Error destroying room.', error: error.message });
+    }
+};
+export const getRoomByCode = getActiveRoomByCode;
 
