@@ -429,9 +429,20 @@ const AIQuestionFeed = () => {
       if (question.type === 'multiple_choice' && question.options) {
         pollType = 'mcq';
         options = question.options;
-        // Convert index to actual option text to match manual poll format
+        // Convert letter answer (A, B, C, D) to actual option text to match manual poll format
         if (typeof question.correctAnswer === 'number') {
+          // If it's a numeric index, use it directly
           correctAnswer = question.options[question.correctAnswer] || question.correctAnswer.toString();
+        } else if (typeof question.correctAnswer === 'string') {
+          // If it's a letter (A, B, C, D), convert to index then to option text
+          const letterToIndex = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+          const answerIndex = letterToIndex[question.correctAnswer.toUpperCase() as keyof typeof letterToIndex];
+          if (answerIndex !== undefined && question.options[answerIndex]) {
+            correctAnswer = question.options[answerIndex];
+          } else {
+            // Fallback: try to match the correctAnswer directly with options
+            correctAnswer = question.correctAnswer;
+          }
         } else {
           correctAnswer = question.correctAnswer;
         }
@@ -461,6 +472,12 @@ const AIQuestionFeed = () => {
         pollType: pollType,
         optionsCount: options.length
       });
+      console.log('🔍 [AI-LAUNCH] DETAILED CORRECTANSWER DEBUG:');
+      console.log('🔍 [AI-LAUNCH] correctAnswer value:', `"${correctAnswer}"`);
+      console.log('🔍 [AI-LAUNCH] correctAnswer length:', correctAnswer?.length);
+      console.log('🔍 [AI-LAUNCH] correctAnswer chars:', correctAnswer?.split('').map(c => `'${c}' (${c.charCodeAt(0)})`));
+      console.log('🔍 [AI-LAUNCH] options array:', options);
+      console.log('🔍 [AI-LAUNCH] options detail:', options.map((opt, idx) => `[${idx}]: "${opt}" (len: ${opt.length})`));
 
       // Create poll in database
       const response = await apiService.createPoll(pollData);
@@ -578,12 +595,12 @@ const AIQuestionFeed = () => {
                 >
                     <Trash2 size={14}/> End This Session
                 </button>
-                <button 
+                {/* <button 
                     onClick={testSocketConnection} 
                     className="text-blue-400 text-sm hover:underline flex items-center gap-1"
                 >
                     🧪 Debug Connection
-                </button>
+                </button> */}
               </div>
             </div>
           )}
@@ -817,9 +834,9 @@ const AIQuestionFeed = () => {
                       </div>
                       <button
                         onClick={() => launchQuestion(question.id)}
-                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg flex items-center space-x-1 transition-colors"
+                        className="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium rounded-lg flex items-center space-x-2 transition-all"
                       >
-                        <Send className="w-3 h-3" />
+                        <Send className="w-3 h-5" />
                         <span>Launch</span>
                       </button>
                     </div>
@@ -877,7 +894,7 @@ const AIQuestionFeed = () => {
                 ))}
               </div>
 
-              <div className="mt-8 flex justify-end">
+              {/* <div className="mt-8 flex justify-end">
                 <button
                   onClick={launchAllQuestions}
                   className="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium rounded-lg flex items-center space-x-2 transition-all"
@@ -885,7 +902,15 @@ const AIQuestionFeed = () => {
                   <Send className="w-5 h-5" />
                   <span>Launch All Questions</span>
                 </button>
-              </div>
+              </div> 
+                <button
+                        onClick={() => launchQuestion(question.id)}
+                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg flex items-center space-x-1 transition-colors"
+                      >
+                        <Send className="w-3 h-3" />
+                        <span>Launch</span>
+                      </button>
+              */}
             </div>
           </GlassCard>
         )}

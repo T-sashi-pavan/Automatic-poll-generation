@@ -506,7 +506,7 @@ const AudioCapture = () => {
                   Clear Transcript
                 </motion.button>
 
-                <motion.button
+                {/* <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
@@ -518,9 +518,9 @@ const AudioCapture = () => {
                   className="px-4 py-2 bg-blue-500/20 rounded-lg text-blue-300 hover:bg-blue-500/30 transition-colors duration-200"
                 >
                   Test Speech
-                </motion.button>
+                </motion.button> */}
 
-                <motion.button
+                {/* <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={async () => {
@@ -532,7 +532,7 @@ const AudioCapture = () => {
                   className="px-4 py-2 bg-green-500/20 rounded-lg text-green-300 hover:bg-green-500/30 transition-colors duration-200"
                 >
                   Speech Only
-                </motion.button>
+                </motion.button> */}
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
