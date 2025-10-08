@@ -1,5 +1,5 @@
 {
-  "buildCommand": "turbo run build --filter=frontend",
+  "buildCommand": "cd apps/frontend && npm run build",
   "outputDirectory": "apps/frontend/dist",
   "installCommand": "npm install",
   "env": {
