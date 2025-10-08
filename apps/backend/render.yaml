@@ -7,7 +7,7 @@ type: web
 env:
   - NODE_VERSION=18
 
-buildCommand: npm install && npm install typescript && ./node_modules/.bin/tsc --outDir dist --rootDir src --target es2020 --module commonjs --esModuleInterop --skipLibCheck --allowJs --resolveJsonModule --moduleResolution node --allowSyntheticDefaultImports --strict false --noImplicitAny false src/index.ts
+buildCommand: npm install && npm install typescript && ./node_modules/.bin/tsc --project tsconfig.production.json
 startCommand: npm run render:start
 
 # Health check endpoint
