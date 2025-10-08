@@ -7,7 +7,7 @@ type: web
 env:
   - NODE_VERSION=18
 
-buildCommand: npm install && npm install typescript && ./node_modules/.bin/tsc --project tsconfig.production.json
+buildCommand: npm install && npm install typescript && npx tsc --project tsconfig.production.json
 startCommand: npm run render:start
 
 # Health check endpoint

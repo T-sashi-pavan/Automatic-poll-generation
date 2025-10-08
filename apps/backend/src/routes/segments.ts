@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Segment } from '../web/models/Segment';
 import ServiceManager from '../services/serviceManager';
+import { asyncHandler } from '../web/utils/asyncHandler';
 import mongoose from 'mongoose';
 
 console.log('🔥🔥🔥 SEGMENTS.TS FILE IS BEING LOADED - NEW VERSION!');
@@ -8,7 +9,7 @@ console.log('🔥🔥🔥 SEGMENTS.TS FILE IS BEING LOADED - NEW VERSION!');
 const router = Router();
 
 // POST /api/segments/save
-router.post('/save', async (req: Request, res: Response) => {
+router.post('/save', asyncHandler(async (req: Request, res: Response) => {
   console.log('🚀🚀🚀 [SEGMENTS] NEW VERSION WITH DEBUGGING - POST /save endpoint called');
   console.log('📝📝📝 [SEGMENTS] NEW VERSION - Request body received:', req.body);
   try {
@@ -103,10 +104,10 @@ router.post('/save', async (req: Request, res: Response) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
-});
+}));
 
 // GET /api/segments/last/:meetingId - Get the last saved segment for duplicate checking
-router.get('/last/:meetingId', async (req: Request, res: Response) => {
+router.get('/last/:meetingId', asyncHandler(async (req: Request, res: Response) => {
   try {
     const { meetingId } = req.params;
 
@@ -142,10 +143,10 @@ router.get('/last/:meetingId', async (req: Request, res: Response) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
-});
+}));
 
 // GET /api/segments/:meetingId - Get all segments for a meeting
-router.get('/:meetingId', async (req: Request, res: Response) => {
+router.get('/:meetingId', asyncHandler(async (req: Request, res: Response) => {
   try {
     const { meetingId } = req.params;
 
@@ -172,10 +173,10 @@ router.get('/:meetingId', async (req: Request, res: Response) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
-});
+}));
 
 // GET /api/segments/:meetingId/questions - Get all auto-generated questions for a meeting
-router.get('/:meetingId/questions', async (req: Request, res: Response) => {
+router.get('/:meetingId/questions', asyncHandler(async (req: Request, res: Response) => {
   try {
     const { meetingId } = req.params;
 
@@ -201,6 +202,6 @@ router.get('/:meetingId/questions', async (req: Request, res: Response) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
-});
+}));
 
 export default router;
