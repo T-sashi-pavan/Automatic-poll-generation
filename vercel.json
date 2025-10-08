@@ -1,4 +1,24 @@
 {
-  "buildCommand": "npm run build --workspace=apps/frontend",
-  "outputDirectory": "apps/frontend/dist"
+  "version": 2,
+  "name": "pollgen-frontend",
+  "builds": [
+    {
+      "src": "apps/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/frontend/dist/$1"
+    }
+  ],
+  "functions": {},
+  "env": {
+    "VITE_BACKEND_URL": "https://automatic-poll-generation-backend.onrender.com",
+    "VITE_WS_URL": "wss://automatic-poll-generation-backend.onrender.com"
+  }
 }

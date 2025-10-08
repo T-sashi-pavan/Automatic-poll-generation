@@ -84,9 +84,9 @@ FRONTEND_URL=https://your-frontend-name.vercel.app
 ### 2.3 Add Environment Variables in Vercel:
 Go to Settings → Environment Variables:
 ```
-VITE_BACKEND_URL=https://pollgen-backend-xyz.onrender.com
-VITE_WS_URL=wss://pollgen-backend-xyz.onrender.com  
-VITE_GEMINI_API_KEY=AIzaSyC... (your actual key)
+VITE_BACKEND_URL=https://automatic-poll-generation-backend.onrender.com
+VITE_WS_URL=wss://automatic-poll-generation-backend.onrender.com 
+VITE_GEMINI_API_KEY=AIzaSyCJoHEBAHDn6yDRSbwogerrpHF-tw5_Mjk
 ```
 
 ### 2.4 Deploy:
