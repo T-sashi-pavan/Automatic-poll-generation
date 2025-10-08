@@ -15,13 +15,8 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": false,
-    "incremental": true,
-    "baseUrl": ".",
-    "paths": {
-      "@poll-automation/types": ["../../shared/types/src/index"],
-      "@poll-automation/types/*": ["../../shared/types/src/*"]
-    }
+    "incremental": true
   },
-  "include": ["src/**/*", "../../shared/types/src/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }
