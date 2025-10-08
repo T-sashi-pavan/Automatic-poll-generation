@@ -27,8 +27,33 @@ connectDB();
 
 const app = express();
 
+// Enhanced CORS configuration for both local and production
+const allowedOrigins = [
+  'http://localhost:5174',              // Local development frontend
+  'http://localhost:3000',              // Alternative local port
+  process.env.FRONTEND_URL,             // Production frontend URL
+  ...(process.env.CORS_ORIGINS?.split(',') || [])  // Additional origins from env
+].filter(Boolean); // Remove undefined/null values
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.some(allowedOrigin => 
+      allowedOrigin && (origin === allowedOrigin || origin.includes(allowedOrigin))
+    )) {
+      return callback(null, true);
+    }
+    
+    // For development, allow any localhost
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
