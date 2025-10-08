@@ -176,6 +176,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [activeRoom, setActiveRoom] = useState<ActiveRoom | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
 
+  // --- NEW: Token refresh handler ---
+  const handleTokenRefresh = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+      
+      const response = await fetch(`${API_URL}/api/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Token refresh failed');
+      }
+      
+      const { token: newToken } = await response.json();
+      setToken(newToken);
+      localStorage.setItem('token', newToken);
+      
+      console.log('✅ Token refreshed successfully');
+      toast.success('Session refreshed');
+      
+    } catch (error) {
+      console.error('❌ Token refresh failed:', error);
+      toast.error('Session expired. Please log in again.');
+      logout();
+    }
+  };
+
   // --- EFFECT 1: Load User, Token, and check for a stored Room on initial App load ---
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -244,7 +276,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         newSocket.on('connect_error', (error) => {
           console.log('❌ Socket connection error:', error);
-          console.log('🔍 Error details:', error.message, error.type);
+          console.log('🔍 Error details:', error.message);
+          
+          // Handle token expiration specifically
+          if (error.message === 'TOKEN_EXPIRED') {
+            console.log('⏰ Token expired, attempting refresh...');
+            handleTokenRefresh();
+            return;
+          }
+          
           // Retry connection after 5 seconds with limited retries
           setTimeout(() => {
             if (newSocket.connected === false) {
@@ -359,11 +399,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // No more fetch! Use the clean, centralized apiService.
     const response = await apiService.login({ email, password });
     
-    const { user: loggedInUser, token: authToken } = response.data;
+    const { user: loggedInUser, token: authToken, refreshToken } = response.data;
     setUser(loggedInUser);
     setToken(authToken); // This will trigger the useEffect to connect the socket
     localStorage.setItem("user", JSON.stringify(loggedInUser));
     localStorage.setItem("token", authToken);
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
   };
 
   const register = async (fullName: string, email: string, password: string, role: 'host' | 'student') => {
@@ -387,6 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActiveRoom(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem(ROOM_STORAGE_KEY);
   };
 

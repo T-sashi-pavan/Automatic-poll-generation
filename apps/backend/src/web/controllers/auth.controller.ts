@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import crypto from "crypto";
 import nodemailer from 'nodemailer';
 import { User } from '../models/user.model';
-import { signToken } from '../utils/jwt';
+import { signShortToken, signRefreshToken, refreshAccessToken } from '../utils/jwt';
 import { sendResetEmail, sendEmail } from '../utils/email';
 
 
@@ -55,9 +55,12 @@ export const login = async (req: Request, res: Response) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
         
-        const token = signToken({ id: user._id, role: user.role });
+        const token = signShortToken({ id: user._id, role: user.role }); // Shorter access token
+        const refreshToken = signRefreshToken({ id: user._id, role: user.role }); // Longer refresh token
+        
         res.json({ 
             token, 
+            refreshToken,
             user: { id: user._id, fullName: user.fullName, email, role: user.role, avatar: user.avatar } 
         });
     } catch (error) {
@@ -122,5 +125,25 @@ export const resetPassword = async (req: Request, res: Response) => {
       console.error(error);
       res.status(500).json({ message: 'Internal Server Error' });
     }
+  }
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Refresh token not provided' });
+    }
+    
+    const newAccessToken = refreshAccessToken(refreshToken);
+    
+    res.json({ 
+      token: newAccessToken,
+      message: 'Token refreshed successfully'
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(401).json({ message: 'Invalid refresh token' });
   }
 };

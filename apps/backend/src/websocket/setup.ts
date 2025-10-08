@@ -6,6 +6,7 @@ import { Room } from '../web/models/room.model';
 import { Poll } from '../web/models/poll.model';
 import { Report } from '../web/models/report.model';
 import { SessionReport } from '../web/models/sessionReport.model'; // <-- NEW IMPORT
+import { isTokenExpired } from '../web/utils/jwt';
 
 import mongoose from 'mongoose';
 
@@ -26,13 +27,23 @@ export const setupWebSocket = (io: Server) => {
         }
         
         try {
+            // Check if token is expired first
+            if (isTokenExpired(token)) {
+                console.log('⏰ Token expired, requiring refresh');
+                return next(new Error('TOKEN_EXPIRED'));
+            }
+            
             const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
             socket.userId = decoded.id;
             console.log('✅ Token valid for user:', socket.userId);
             next();
         } catch (err) {
             console.log('❌ Invalid token:', err);
-            next(new Error('Authentication error: Invalid token'));
+            if (err instanceof jwt.TokenExpiredError) {
+                next(new Error('TOKEN_EXPIRED'));
+            } else {
+                next(new Error('Authentication error: Invalid token'));
+            }
         }
     });
 

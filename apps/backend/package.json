@@ -10,7 +10,8 @@
     "testEnvironment": "node"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --skipLibCheck --outDir dist --rootDir src",
+    "build:simple": "npx tsc src/index.ts --outDir dist --target es2020 --module commonjs --esModuleInterop --skipLibCheck --allowJs --resolveJsonModule",
     "start": "node dist/index.js",
     "dev": "ts-node-dev src/index.ts",
     "dev:transcription": "nodemon src/transcription/index.ts",
@@ -18,7 +19,7 @@
     "format": "prettier --write src/**/*",
     "test": "jest",
     "test:client": "ts-node test-client.ts",
-    "render:build": "bash render-build.sh",
+    "render:build": "npm run build:simple",
     "render:start": "node dist/index.js"
   },
   "keywords": [],
