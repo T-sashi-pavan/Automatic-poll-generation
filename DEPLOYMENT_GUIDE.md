@@ -103,7 +103,7 @@ VITE_GEMINI_API_KEY=AIzaSyCJoHEBAHDn6yDRSbwogerrpHF-tw5_Mjk
 - Environment → Edit
 - Update `FRONTEND_URL` to your actual Vercel URL:
 ```
-FRONTEND_URL=https://pollgen-frontend-xyz.vercel.app
+FRONTEND_URL=https://automatic-poll-generation-frontend.vercel.app/
 ```
 - Save and redeploy
 
