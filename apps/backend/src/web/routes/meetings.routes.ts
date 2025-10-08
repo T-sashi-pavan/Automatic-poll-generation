@@ -1,4 +1,4 @@
-import { Router, RequestHandler } from 'express';
+import { Router } from 'express';
 import {
   getMeetingTranscripts,
   generateQuestions,
@@ -16,24 +16,24 @@ const router = Router();
 router.use(authenticate);
 
 // GET /api/meetings/:id/transcripts - Get transcripts for AI question generation
-router.get('/:id/transcripts', getMeetingTranscripts as RequestHandler);
+router.get('/:id/transcripts', getMeetingTranscripts);
 
 // POST /api/meetings/:id/generate-questions - Generate questions using Gemini API
-router.post('/:id/generate-questions', generateQuestions as RequestHandler);
+router.post('/:id/generate-questions', generateQuestions);
 
 // GET /api/meetings/:id/questions - Get generated questions for a meeting
-router.get('/:id/questions', getMeetingQuestions as RequestHandler);
+router.get('/:id/questions', getMeetingQuestions);
 
 // PUT /api/meetings/:id/questions/:questionId - Update a specific question
-router.put('/:id/questions/:questionId', updateQuestion as RequestHandler);
+router.put('/:id/questions/:questionId', updateQuestion);
 
 // POST /api/meetings/:id/questions/:questionId/launch - Launch individual question to students
-router.post('/:id/questions/:questionId/launch', launchQuestion as RequestHandler);
+router.post('/:id/questions/:questionId/launch', launchQuestion);
 
 // POST /api/meetings/:id/publish-questions - Publish questions to students
-router.post('/:id/publish-questions', publishQuestions as RequestHandler);
+router.post('/:id/publish-questions', publishQuestions);
 
 // DELETE /api/meetings/:id/questions - Delete generated questions
-router.delete('/:id/questions', deleteMeetingQuestions as RequestHandler);
+router.delete('/:id/questions', deleteMeetingQuestions);
 
 export default router;
