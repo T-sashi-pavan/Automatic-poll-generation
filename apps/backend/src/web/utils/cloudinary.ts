@@ -5,23 +5,42 @@ dotenv.config();
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 import streamifier from 'streamifier';
 
-// Configure Cloudinary with your credentials from the .env file
-cloudinary.config({ 
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
-  api_key: process.env.CLOUDINARY_API_KEY, 
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true // It's good practice to enforce HTTPS
-});
-cloudinary.api.ping((error: any, result: any) => {
-  if (error) {
-    console.error("Ping failed:", error);
-  } else {
-    console.log("Ping success:", result);
-  }
-});
+// Check if Cloudinary credentials are available
+const hasCloudinaryConfig = !!(
+  process.env.CLOUDINARY_CLOUD_NAME && 
+  process.env.CLOUDINARY_API_KEY && 
+  process.env.CLOUDINARY_API_SECRET
+);
+
+if (hasCloudinaryConfig) {
+  // Configure Cloudinary with your credentials from the .env file
+  cloudinary.config({ 
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+    api_key: process.env.CLOUDINARY_API_KEY, 
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true // It's good practice to enforce HTTPS
+  });
+  
+  // Only ping if configuration is available
+  cloudinary.api.ping((error: any, result: any) => {
+    if (error) {
+      console.error("Ping failed:", error);
+    } else {
+      console.log("Ping success:", result);
+    }
+  });
+} else {
+  console.warn("⚠️ Cloudinary configuration missing - image upload features will be disabled");
+}
 // This function takes a file buffer (from multer) and uploads it to Cloudinary as a stream
 export const uploadStream = (buffer: Buffer): Promise<UploadApiResponse | UploadApiErrorResponse> => {
   return new Promise((resolve, reject) => {
+    
+    // Check if Cloudinary is configured
+    if (!hasCloudinaryConfig) {
+      reject(new Error('Cloudinary not configured - image upload unavailable'));
+      return;
+    }
     
     // Create an upload stream to Cloudinary
     const stream = cloudinary.uploader.upload_stream(
