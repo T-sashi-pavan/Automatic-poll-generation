@@ -11,8 +11,8 @@
   },
   "scripts": {
     "build": "tsc --skipLibCheck --outDir dist --rootDir src",
-    "build:simple": "npx tsc --outDir dist --rootDir src --target es2020 --module commonjs --esModuleInterop --skipLibCheck --allowJs --resolveJsonModule --moduleResolution node --allowSyntheticDefaultImports --strict false --noImplicitAny false src/index.ts",
-    "build:fallback": "npx tsc --outDir dist --rootDir src --target es2020 --module commonjs --esModuleInterop --skipLibCheck --allowJs --resolveJsonModule --moduleResolution node --allowSyntheticDefaultImports --strict false --noImplicitAny false src/index.ts",
+    "build:simple": "npm install typescript && ./node_modules/.bin/tsc --outDir dist --rootDir src --target es2020 --module commonjs --esModuleInterop --skipLibCheck --allowJs --resolveJsonModule --moduleResolution node --allowSyntheticDefaultImports --strict false --noImplicitAny false src/index.ts",
+    "build:fallback": "npm install -g typescript && tsc --outDir dist --rootDir src --target es2020 --module commonjs --esModuleInterop --skipLibCheck --allowJs --resolveJsonModule --moduleResolution node --allowSyntheticDefaultImports --strict false --noImplicitAny false src/index.ts",
     "start": "node dist/index.js",
     "dev": "ts-node-dev src/index.ts",
     "dev:transcription": "nodemon src/transcription/index.ts",
@@ -20,7 +20,7 @@
     "format": "prettier --write src/**/*",
     "test": "jest",
     "test:client": "ts-node test-client.ts",
-    "render:build": "npm run build:simple",
+    "render:build": "npm run build:simple || npm run build:fallback",
     "render:start": "node dist/index.js"
   },
   "keywords": [],
