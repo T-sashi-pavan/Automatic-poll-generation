@@ -21,7 +21,8 @@ const GuestPage: React.FC = () => {
 
   useEffect(() => {
     // Initialize audio streamer
-    const wsUrl = 'ws://localhost:8000/ws/asr';
+    const backendUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    const wsUrl = backendUrl.replace(/^https?:/, backendUrl.startsWith('https:') ? 'wss:' : 'ws:') + '/ws/asr';
     audioStreamerRef.current = new GuestAudioStreamer(wsUrl, meetingId, displayName);
     
     // Set up callbacks

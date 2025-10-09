@@ -19,7 +19,6 @@ import path from 'path'; // <-- Import path module
 import settingsRouter from './web/routes/settings';
 import saveQuestionsRouter from './web/routes/save_questions';
 import pollConfigRoutes from './web/routes/poll.routes';
-import transcriptsRouter from './web/routes/transcripts';
 import sessionReportRoutes from './web/routes/sessionReport.routes'; // <-- NEW IMPORT
 
 dotenv.config();

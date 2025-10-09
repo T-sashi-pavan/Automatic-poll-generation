@@ -179,7 +179,8 @@ const AIQuestionFeed = () => {
       // Fallback: Try to fetch from backend API if no local data
       console.log('📡 No local transcripts found, trying backend API...');
       try {
-        const response = await fetch(`/api/transcripts/${activeMeetingId}`);
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        const response = await fetch(`${baseUrl}/transcripts/${activeMeetingId}`);
         if (response.ok) {
           const backendData = await response.json();
           console.log('✅ Backend API response:', backendData);

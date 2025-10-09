@@ -961,7 +961,8 @@ export class AudioStreamer {
         // Fallback: Send via HTTP API
         console.log('🔄 WebSocket not available, sending via HTTP API...');
         
-        const response = await fetch('/api/transcripts', {
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        const response = await fetch(`${baseUrl}/transcripts`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

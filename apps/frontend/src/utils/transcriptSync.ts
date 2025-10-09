@@ -70,7 +70,8 @@ export class TranscriptSyncService {
     }
 
     try {
-      const response = await fetch('/api/transcripts', {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${baseUrl}/transcripts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +135,8 @@ export class TranscriptSyncService {
 
       for (const [meetingId, meetingTranscripts] of Object.entries(grouped)) {
         try {
-          const response = await fetch('/api/transcripts', {
+          const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+          const response = await fetch(`${baseUrl}/transcripts`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
