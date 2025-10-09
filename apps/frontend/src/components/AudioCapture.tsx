@@ -228,10 +228,13 @@ const AudioCapture = () => {
 
   // WebSocket URL - adjust based on your backend configuration
   const getWebSocketUrl = () => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname;
-    const port = '8000'; // Backend port
-    return `${protocol}//${host}:${port}/ws/asr`;
+    // Use environment variable for production, fall back to localhost for development
+    const backendUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    
+    // Convert HTTP(S) URL to WebSocket URL
+    const wsUrl = backendUrl.replace(/^https?:/, backendUrl.startsWith('https:') ? 'wss:' : 'ws:');
+    
+    return `${wsUrl}/ws/asr`;
   };
 
   // Initialize audio streamer only if room exists
