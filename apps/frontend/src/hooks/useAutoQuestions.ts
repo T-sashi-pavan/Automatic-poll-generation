@@ -109,7 +109,8 @@ export const useAutoQuestions = ({ meetingId, enabled }: UseAutoQuestionsProps) 
     try {
       console.log('📚 [AUTO-QUESTIONS] Fetching existing questions for meeting:', meetingId);
       
-      const response = await fetch(`/api/segments/${meetingId}/questions`);
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${baseUrl}/segments/${meetingId}/questions`);
       if (response.ok) {
         const data = await response.json();
         

@@ -45,7 +45,8 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
 // Function to fetch last saved segment from database for comparison
 const fetchLastSavedSegment = async (meetingId: string): Promise<string | null> => {
   try {
-    const response = await fetch(`http://localhost:8000/api/segments/last/${meetingId}`);
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const response = await fetch(`${baseUrl}/segments/last/${meetingId}`);
     if (!response.ok) {
       if (response.status === 404) {
         // No segments found - this is normal for first segment
@@ -298,7 +299,8 @@ export const useTranscriptSegmentation = (
       console.log(`⏸ Silence detected for 10 seconds – Segment ${segmentationStateRef.current.segmentCount + 1} ready to save`);
 
       // STEP 8: Save to database
-      const response = await fetch('http://localhost:8000/api/segments/save', {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${baseUrl}/segments/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
