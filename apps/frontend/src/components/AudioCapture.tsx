@@ -101,6 +101,19 @@ const AudioCapture = () => {
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
 
+  // Mobile device detection functions
+  const isMobileDevice = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
+           'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  };
+
+  const isChromeOnMobile = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isChrome = /chrome/.test(userAgent) && !/edg/.test(userAgent);
+    return isChrome && isMobileDevice();
+  };
+
   // Initialize transcript capture for REAL-TIME console capture and MongoDB storage
   // Only initialize if we have an active room
   const transcriptCapture = useTranscriptCapture(
@@ -756,6 +769,21 @@ const AudioCapture = () => {
                   )}
                 </motion.button>
               </div>
+              
+              {/* Mobile Detection and Notification */}
+              {isMobileDevice() && (
+                <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    <p className="text-sm text-yellow-200">
+                      {isChromeOnMobile() ? 
+                        "Mobile Chrome detected - Using optimized recording mode" :
+                        "Mobile device detected - Enhanced audio capture enabled"
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="text-center">
                 <p className="text-sm text-gray-400">
