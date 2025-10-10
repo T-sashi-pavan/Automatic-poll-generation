@@ -772,16 +772,21 @@ const AudioCapture = () => {
               
               {/* Mobile Detection and Notification */}
               {isMobileDevice() && (
-                <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-2">
+                <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-2">
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <p className="text-sm text-yellow-200">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <p className="text-sm text-blue-200">
                       {isChromeOnMobile() ? 
-                        "Mobile Chrome detected - Using optimized recording mode" :
-                        "Mobile device detected - Enhanced audio capture enabled"
+                        "Mobile Chrome: Speech-only mode active (MediaRecorder disabled)" :
+                        "Mobile device: Enhanced audio capture enabled"
                       }
                     </p>
                   </div>
+                  {isChromeOnMobile() && (
+                    <p className="text-xs text-blue-300 mt-1 opacity-80">
+                      Using optimized recording to prevent audio conflicts
+                    </p>
+                  )}
                 </div>
               )}
 
