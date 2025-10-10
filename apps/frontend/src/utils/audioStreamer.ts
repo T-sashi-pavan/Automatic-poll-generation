@@ -44,6 +44,7 @@ export class AudioStreamer {
   private lastPartialTranscript: string = ''; // Track last partial transcript
   private partialTranscriptStartTime: number = 0; // Track when partial transcript started
   private forceFinalTimer: NodeJS.Timeout | null = null; // Timer to force final transcripts
+  private isMobileChromeBlocked = false; // Flag to completely block MediaRecorder on mobile Chrome
   
   private config: AudioStreamConfig = {
     sampleRate: 16000, // Vosk optimal sample rate
@@ -73,6 +74,23 @@ export class AudioStreamer {
     this.meetingId = meetingId;
     this.participantId = participantId;
     this.role = role;
+    
+    // CRITICAL: Block MediaRecorder completely on mobile Chrome during initialization
+    if (this.isChromeOnMobile()) {
+      this.isMobileChromeBlocked = true;
+      console.log('🚫 MOBILE CHROME DETECTED: MediaRecorder functionality completely disabled');
+      
+      // Override MediaRecorder constructor to prevent any usage
+      if (typeof window !== 'undefined' && window.MediaRecorder) {
+        const originalMediaRecorder = window.MediaRecorder;
+        (window as any).MediaRecorder = function() {
+          console.warn('🚫 MediaRecorder blocked on mobile Chrome to prevent audio conflicts');
+          throw new Error('MediaRecorder is disabled on mobile Chrome for compatibility');
+        };
+        // Keep static methods available for feature detection
+        (window as any).MediaRecorder.isTypeSupported = originalMediaRecorder.isTypeSupported;
+      }
+    }
   }
 
   // Mobile device detection methods
@@ -639,6 +657,24 @@ export class AudioStreamer {
 
   async initializeAudio(includeSystemAudio = false): Promise<boolean> {
     try {
+      // Check if we're on mobile Chrome with MediaRecorder blocked
+      if (this.isMobileChromeBlocked) {
+        console.log('📱 Mobile Chrome detected - initializing speech-only mode');
+        
+        // Initialize ONLY speech recognition for mobile Chrome
+        const speechRecognitionAvailable = this.initializeSpeechRecognition();
+        if (speechRecognitionAvailable) {
+          console.log('✅ Speech recognition initialized for mobile Chrome (no MediaStream)');
+          this.callbacks.onStatusChange('connected');
+          return true;
+        } else {
+          console.error('❌ Speech recognition not available on mobile Chrome');
+          this.callbacks.onError('Speech recognition not available on this device');
+          return false;
+        }
+      }
+
+      // Standard initialization for desktop and non-Chrome mobile
       // Initialize speech recognition first
       const speechRecognitionAvailable = this.initializeSpeechRecognition();
       if (speechRecognitionAvailable) {
@@ -878,54 +914,68 @@ export class AudioStreamer {
 
   private async startMobileFriendlyRecording(): Promise<boolean> {
     try {
-      console.log('📱 Starting mobile-friendly recording (WebRTC-only)...');
+      console.log('📱 Starting AGGRESSIVE mobile-friendly recording (NO MediaRecorder EVER)...');
       
-      if (this.isChromeOnMobile()) {
-        console.log('🎤 Using Chrome mobile optimized mode - NO MediaRecorder');
+      if (this.isMobileChromeBlocked) {
+        console.log('🚫 Mobile Chrome - MediaRecorder permanently blocked, using SPEECH-ONLY mode');
         
-        // CRITICAL: For Chrome mobile, completely avoid MediaRecorder
-        // Use only speech recognition + WebSocket streaming
+        // CRITICAL: NO MediaStream or MediaRecorder setup AT ALL
+        // We'll use ONLY speech recognition to avoid any audio conflicts
         
-        // Start speech recognition ONLY
+        // Clear any existing MediaRecorder references
+        this.mediaRecorder = null;
+        
+        // Don't request getUserMedia on mobile Chrome to avoid conflicts
+        // Speech recognition will handle microphone access internally
+        
+        // Initialize ONLY speech recognition
         const speechAvailable = this.initializeSpeechRecognition();
         if (speechAvailable && this.speechRecognition) {
-          // Add mobile-specific error handling
-          this.speechRecognition.onerror = (event) => {
+          
+          // Enhanced error handling for mobile Chrome
+          this.speechRecognition.onerror = (event: any) => {
+            console.log('🎤 Speech recognition error:', event.error);
+            
             if (event.error === 'not-allowed') {
-              this.callbacks.onError('Microphone access denied. Please allow microphone permission.');
+              this.callbacks.onError('Microphone access denied. Please allow microphone permission and try again.');
             } else if (event.error === 'audio-capture') {
-              // This is the conflict error - try to restart
-              console.log('🔄 Audio capture conflict detected, restarting...');
+              console.log('🔄 Audio capture conflict - retrying in 2 seconds...');
               setTimeout(() => {
                 if (this.speechRecognition && !this.isRecording) {
-                  this.speechRecognition.start();
+                  try {
+                    this.speechRecognition.start();
+                  } catch (retryError) {
+                    console.error('Retry failed:', retryError);
+                  }
                 }
-              }, 1000);
+              }, 2000);
+            } else if (event.error === 'network') {
+              this.callbacks.onError('Network error. Please check your internet connection.');
             } else {
-              console.warn('Speech recognition error:', event.error);
+              console.warn('Speech recognition non-critical error:', event.error);
             }
           };
           
-          // Start speech recognition with mobile delay
+          // Start speech recognition with delay for mobile stability
           setTimeout(() => {
             if (this.speechRecognition && !this.isRecording) {
               try {
                 this.speechRecognition.start();
-                console.log('✅ Mobile speech recognition started (MediaRecorder-free)');
+                console.log('✅ Mobile speech recognition started successfully (MediaRecorder-free)');
                 this.isRecording = true;
                 this.callbacks.onStatusChange('recording');
               } catch (error) {
-                console.error('❌ Mobile speech recognition failed:', error);
-                this.callbacks.onError('Speech recognition failed. Please try again.');
+                console.error('❌ Mobile speech recognition start failed:', error);
+                this.callbacks.onError('Speech recognition failed to start. Please refresh and try again.');
                 return false;
               }
             }
-          }, 500);
+          }, 1000); // 1 second delay for mobile stability
+        } else {
+          this.callbacks.onError('Speech recognition not available on this device.');
+          return false;
         }
 
-        // IMPORTANT: NO MediaRecorder setup for mobile Chrome
-        // This prevents the "cannot record now as chrome is recording" error
-        
         return true;
         
       } else {
