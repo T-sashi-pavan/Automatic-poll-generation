@@ -278,6 +278,30 @@ export class AudioStreamer {
       this.simpleMobileSpeechRecognition.onend = () => {
         console.log('🔚 Mobile speech recognition ended');
         this.isMobileSpeechActive = false;
+        
+        // Auto-restart speech recognition if recording is still active (continuous mobile capture)
+        if (this.isRecording && this.isMobileDevice()) {
+          console.log('🔄 Auto-restarting mobile speech recognition for continuous capture...');
+          
+          // Show auto-restart feedback
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[🔄 Ready for next speech... Speak now or tap mic button]',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
+          
+          // Auto-restart after a brief delay
+          setTimeout(() => {
+            if (this.isRecording && !this.isMobileSpeechActive) {
+              this.startMobileSpeechCapture();
+            }
+          }, 1000); // 1 second delay between auto-restarts
+        }
       };
 
       console.log('✅ Simple mobile speech recognition initialized successfully (To-Do List pattern)');
@@ -1127,8 +1151,8 @@ export class AudioStreamer {
       });
 
       if (isMobile) {
-        console.log('📱 Mobile device detected - using simple speech approach (To-Do List pattern)');
-        // For mobile, we don't need media stream - just the simple speech recognition
+        console.log('📱 Mobile device detected - auto-starting speech recognition (To-Do List pattern)');
+        // For mobile, automatically start speech recognition when original mic button is clicked
         this.isRecording = true;
         this.callbacks.onStatusChange('recording');
         
@@ -1138,13 +1162,34 @@ export class AudioStreamer {
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[📱 Mobile Recording Ready] Use the microphone button below to capture speech. Each tap records one phrase.',
+          text: '[📱 Mobile Recording Active] Auto-starting speech recognition... Speak now!',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
         });
 
-        console.log('✅ Mobile recording mode activated - ready for speech capture');
+        // Automatically start mobile speech capture (no manual "Tap to Speak" needed)
+        setTimeout(() => {
+          const speechStarted = this.startMobileSpeechCapture();
+          if (speechStarted) {
+            console.log('✅ Mobile speech recognition auto-started successfully');
+          } else {
+            console.log('❌ Failed to auto-start mobile speech recognition');
+            // Show fallback instructions
+            this.callbacks.onTranscript({
+              type: 'partial',
+              meetingId: this.meetingId,
+              role: this.role,
+              participantId: this.participantId,
+              text: '[📱 Auto-start failed] Please use the "Tap to Speak" button below to capture speech.',
+              startTime: Date.now(),
+              endTime: Date.now(),
+              timestamp: Date.now()
+            });
+          }
+        }, 500); // Small delay to ensure UI is ready
+
+        console.log('✅ Mobile recording mode activated with auto-speech capture');
         return true;
       } else {
         console.log('🖥️ Desktop device detected - using full recording functionality');

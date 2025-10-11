@@ -777,16 +777,16 @@ const AudioCapture = () => {
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <p className="text-sm text-green-200 font-medium">
-                        📱 Mobile Speech Mode Active (To-Do List Pattern)
+                        📱 Mobile Auto-Speech Mode (Auto-activates on Record)
                       </p>
                     </div>
                     
                     <div className="text-xs text-green-300 space-y-1">
-                      <p>• Tap the microphone button below to capture speech</p>
-                      <p>• Each tap records one phrase or sentence</p>
+                      <p>• Click the main recording button to auto-start speech capture</p>
+                      <p>• Speech recognition starts automatically (no manual tapping needed)</p>
                       <p>• Segments auto-save after 10 seconds automatically</p>
-                      <p>• Continue tapping to extend session (timer resets)</p>
-                      <p>• Works with AI question generation like desktop</p>
+                      <p>• Continue speaking - recognition restarts automatically</p>
+                      <p>• Use "Tap to Speak" button for manual speech capture</p>
                     </div>
                     
                     {/* Mobile Microphone Button (based on your To-Do List pattern) */}
