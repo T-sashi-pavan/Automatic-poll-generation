@@ -200,22 +200,39 @@ export class AudioStreamer {
           clearTimeout(this.mobileSegmentTimer);
         }
         
-        // Start 10-second timer for automatic segment saving (like desktop)
-        this.mobileSegmentTimer = setTimeout(() => {
-          console.log('⏰ [MOBILE] Auto-saving mobile transcripts to segments after 10 seconds');
-          this.saveTranscriptsToBackend();
-          
-          // Show feedback in UI
+        // Show immediate feedback with countdown
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: '[⏰ Auto-save countdown: Transcripts will save in 10 seconds...]',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
+        
+        // 5-second warning
+        setTimeout(() => {
           this.callbacks.onTranscript({
             type: 'partial',
             meetingId: this.meetingId,
             role: this.role,
             participantId: this.participantId,
-            text: '[💾 Mobile segments auto-saved after 10 seconds]',
+            text: '[⏰ Auto-save in 5 seconds... Tap mic to add more and reset timer]',
             startTime: Date.now(),
             endTime: Date.now(),
             timestamp: Date.now()
           });
+        }, 5000);
+        
+        // Start 10-second timer for automatic segment saving (like desktop)
+        this.mobileSegmentTimer = setTimeout(async () => {
+          console.log('⏰ [MOBILE] Auto-saving mobile transcripts to segments after 10 seconds');
+          
+          // Save transcripts
+          await this.saveTranscriptsToBackend();
+          
         }, 10000); // 10 seconds like desktop behavior
         
         // Show completion feedback
@@ -224,7 +241,7 @@ export class AudioStreamer {
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[✅ Speech captured successfully - Will auto-save in 10 seconds]',
+          text: '[✅ Speech captured - Tap mic again to add more (auto-save in 10s)]',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
@@ -1397,12 +1414,24 @@ export class AudioStreamer {
     }
   }
 
-  private async saveTranscriptsToBackend(): Promise<void> {
+  public async saveTranscriptsToBackend(): Promise<void> {
     try {
       console.log(`🔍 Starting transcript save process. Buffer has ${this.transcriptBuffer.length} transcripts`);
       
       if (this.transcriptBuffer.length === 0) {
         console.log('📝 No final transcripts to save');
+        
+        // Show user feedback even when no transcripts to save
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: '[ℹ️ No new transcripts to save]',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
         return;
       }
 
@@ -1415,7 +1444,21 @@ export class AudioStreamer {
 
       console.log(`📤 Sending ${this.transcriptBuffer.length} transcripts to backend for database saving...`);
 
-      // Send transcripts via WebSocket
+      // Show saving feedback to user
+      this.callbacks.onTranscript({
+        type: 'partial',
+        meetingId: this.meetingId,
+        role: this.role,
+        participantId: this.participantId,
+        text: `[💾 Saving ${this.transcriptBuffer.length} transcript(s) to segments...]`,
+        startTime: Date.now(),
+        endTime: Date.now(),
+        timestamp: Date.now()
+      });
+
+      let saveSuccessful = false;
+
+      // Try WebSocket first (for desktop users)
       if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
         const saveMessage: AudioChunkMessage = {
           type: 'save_transcripts',
@@ -1435,9 +1478,10 @@ export class AudioStreamer {
 
         this.websocket.send(JSON.stringify(saveMessage));
         console.log('✅ Transcripts sent to backend via WebSocket');
+        saveSuccessful = true;
       } else {
-        // Fallback: Send via HTTP API
-        console.log('🔄 WebSocket not available, sending via HTTP API...');
+        // Fallback: Send via HTTP API (especially important for mobile)
+        console.log('🔄 WebSocket not available, sending via HTTP API (mobile/fallback mode)...');
         
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
         const response = await fetch(`${baseUrl}/transcripts`, {
@@ -1455,9 +1499,24 @@ export class AudioStreamer {
 
         if (response.ok) {
           console.log('✅ Transcripts saved via HTTP API');
+          saveSuccessful = true;
         } else {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+      }
+
+      // Show success feedback to user
+      if (saveSuccessful) {
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: `[✅ Successfully saved ${this.transcriptBuffer.length} transcript(s) to segments]`,
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
       }
 
       // Clear the buffer after successful saving
@@ -1465,6 +1524,19 @@ export class AudioStreamer {
       this.transcriptBuffer = [];
     } catch (error) {
       console.error('❌ Failed to save transcripts to backend:', error);
+      
+      // Show error feedback to user
+      this.callbacks.onTranscript({
+        type: 'partial',
+        meetingId: this.meetingId,
+        role: this.role,
+        participantId: this.participantId,
+        text: `[❌ Failed to save transcripts: ${error instanceof Error ? error.message : 'Unknown error'}]`,
+        startTime: Date.now(),
+        endTime: Date.now(),
+        timestamp: Date.now()
+      });
+      
       // Keep transcripts in buffer for retry
     }
   }

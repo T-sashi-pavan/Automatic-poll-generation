@@ -784,9 +784,9 @@ const AudioCapture = () => {
                     <div className="text-xs text-green-300 space-y-1">
                       <p>• Tap the microphone button below to capture speech</p>
                       <p>• Each tap records one phrase or sentence</p>
-                      <p>• Segments auto-save after 10 seconds (like desktop)</p>
+                      <p>• Segments auto-save after 10 seconds automatically</p>
+                      <p>• Continue tapping to extend session (timer resets)</p>
                       <p>• Works with AI question generation like desktop</p>
-                      <p>• Use "Save Segments Now" for immediate saving</p>
                     </div>
                     
                     {/* Mobile Microphone Button (based on your To-Do List pattern) */}
@@ -808,23 +808,6 @@ const AudioCapture = () => {
                     >
                       <span className="text-2xl">🎤</span>
                       <span className="text-lg">Tap to Speak</span>
-                    </motion.button>
-                    
-                    {/* Manual Save Segments Button for Mobile */}
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        if (audioStreamerRef.current) {
-                          console.log('💾 Manual mobile segment save requested');
-                          audioStreamerRef.current.saveTranscriptsToBackend();
-                          setStatusMessage('💾 Mobile segments saved manually');
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 rounded-lg text-green-300 font-medium transition-colors duration-200 flex items-center justify-center gap-2"
-                    >
-                      <span className="text-lg">💾</span>
-                      <span>Save Segments Now</span>
                     </motion.button>
                   </div>
                 </div>
