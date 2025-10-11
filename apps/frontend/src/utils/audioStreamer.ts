@@ -279,28 +279,30 @@ export class AudioStreamer {
         console.log('🔚 Mobile speech recognition ended');
         this.isMobileSpeechActive = false;
         
-        // Auto-restart speech recognition if recording is still active (continuous mobile capture)
+        // AUTO-RESTART speech recognition if recording is still active (continuous mode)
         if (this.isRecording && this.isMobileDevice()) {
-          console.log('🔄 Auto-restarting mobile speech recognition for continuous capture...');
+          console.log('🔄 AUTO-RESTARTING mobile speech recognition for continuous capture');
           
-          // Show auto-restart feedback
-          this.callbacks.onTranscript({
-            type: 'partial',
-            meetingId: this.meetingId,
-            role: this.role,
-            participantId: this.participantId,
-            text: '[🔄 Ready for next speech... Speak now or tap mic button]',
-            startTime: Date.now(),
-            endTime: Date.now(),
-            timestamp: Date.now()
-          });
-          
-          // Auto-restart after a brief delay
+          // Small delay before restarting to avoid conflicts
           setTimeout(() => {
             if (this.isRecording && !this.isMobileSpeechActive) {
-              this.startMobileSpeechCapture();
+              try {
+                this.simpleMobileSpeechRecognition.start();
+                console.log('✅ Mobile speech recognition AUTO-RESTARTED');
+              } catch (error) {
+                console.log('🔄 Speech restart delayed - will try again in 2 seconds');
+                setTimeout(() => {
+                  if (this.isRecording && !this.isMobileSpeechActive) {
+                    try {
+                      this.simpleMobileSpeechRecognition.start();
+                    } catch (retryError) {
+                      console.error('❌ Failed to auto-restart speech recognition:', retryError);
+                    }
+                  }
+                }, 2000);
+              }
             }
-          }, 1000); // 1 second delay between auto-restarts
+          }, 500);
         }
       };
 
@@ -1151,8 +1153,8 @@ export class AudioStreamer {
       });
 
       if (isMobile) {
-        console.log('📱 Mobile device detected - auto-starting speech recognition (To-Do List pattern)');
-        // For mobile, automatically start speech recognition when original mic button is clicked
+        console.log('📱 Mobile device detected - AUTO-STARTING speech capture (To-Do List pattern)');
+        // For mobile, we don't need media stream - just the simple speech recognition
         this.isRecording = true;
         this.callbacks.onStatusChange('recording');
         
@@ -1162,34 +1164,30 @@ export class AudioStreamer {
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[📱 Mobile Recording Active] Auto-starting speech recognition... Speak now!',
+          text: '[📱 Mobile Recording Active] Original mic button auto-activated speech capture!',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
         });
 
-        // Automatically start mobile speech capture (no manual "Tap to Speak" needed)
-        setTimeout(() => {
-          const speechStarted = this.startMobileSpeechCapture();
-          if (speechStarted) {
-            console.log('✅ Mobile speech recognition auto-started successfully');
-          } else {
-            console.log('❌ Failed to auto-start mobile speech recognition');
-            // Show fallback instructions
-            this.callbacks.onTranscript({
-              type: 'partial',
-              meetingId: this.meetingId,
-              role: this.role,
-              participantId: this.participantId,
-              text: '[📱 Auto-start failed] Please use the "Tap to Speak" button below to capture speech.',
-              startTime: Date.now(),
-              endTime: Date.now(),
-              timestamp: Date.now()
-            });
-          }
-        }, 500); // Small delay to ensure UI is ready
+        // AUTO-START the mobile speech capture immediately
+        console.log('🎤 AUTO-STARTING mobile speech capture from original mic button');
+        const speechStarted = this.startMobileSpeechCapture();
+        
+        if (speechStarted) {
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[🎤 Auto-started] Speech recognition activated - speak now or tap "Tap to Speak" for more',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
+        }
 
-        console.log('✅ Mobile recording mode activated with auto-speech capture');
+        console.log('✅ Mobile recording mode activated with AUTO-STARTED speech capture');
         return true;
       } else {
         console.log('🖥️ Desktop device detected - using full recording functionality');
@@ -1608,9 +1606,20 @@ export class AudioStreamer {
     if (this.speechRecognition) {
       try {
         this.speechRecognition.stop();
-        console.log('🔇 Speech recognition stopped');
+        console.log('🔇 Desktop speech recognition stopped');
       } catch (error) {
-        console.warn('Could not stop speech recognition:', error);
+        console.warn('Could not stop desktop speech recognition:', error);
+      }
+    }
+
+    // Stop mobile speech recognition if running
+    if (this.simpleMobileSpeechRecognition && this.isMobileSpeechActive) {
+      try {
+        this.simpleMobileSpeechRecognition.stop();
+        this.isMobileSpeechActive = false;
+        console.log('🔇 Mobile speech recognition stopped');
+      } catch (error) {
+        console.warn('Could not stop mobile speech recognition:', error);
       }
     }
 
