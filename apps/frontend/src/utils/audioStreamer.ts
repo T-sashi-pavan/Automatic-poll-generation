@@ -200,26 +200,26 @@ export class AudioStreamer {
           clearTimeout(this.mobileSegmentTimer);
         }
         
-        // Show immediate feedback with countdown
+        // Show immediate feedback about upcoming auto-save
         this.callbacks.onTranscript({
           type: 'partial',
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[⏰ Auto-save countdown: Transcripts will save in 10 seconds...]',
+          text: '[✅ Speech captured - Auto-saving to database in 10 seconds...]',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
         });
         
-        // 5-second warning
+        // Add countdown feedback (5 seconds remaining)
         setTimeout(() => {
           this.callbacks.onTranscript({
             type: 'partial',
             meetingId: this.meetingId,
             role: this.role,
             participantId: this.participantId,
-            text: '[⏰ Auto-save in 5 seconds... Tap mic to add more and reset timer]',
+            text: '[⏰ Auto-save in 5 seconds...]',
             startTime: Date.now(),
             endTime: Date.now(),
             timestamp: Date.now()
@@ -228,24 +228,54 @@ export class AudioStreamer {
         
         // Start 10-second timer for automatic segment saving (like desktop)
         this.mobileSegmentTimer = setTimeout(async () => {
-          console.log('⏰ [MOBILE] Auto-saving mobile transcripts to segments after 10 seconds');
+          console.log('⏰ [MOBILE] Auto-saving mobile transcripts to database after 10 seconds');
           
-          // Save transcripts
-          await this.saveTranscriptsToBackend();
+          // Show countdown feedback
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[⏰ 10 seconds elapsed - Saving segments to database...]',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
           
+          try {
+            // Save to backend
+            await this.saveTranscriptsToBackend();
+            
+            // Show success feedback
+            this.callbacks.onTranscript({
+              type: 'partial',
+              meetingId: this.meetingId,
+              role: this.role,
+              participantId: this.participantId,
+              text: '[💾 ✅ Mobile segments successfully saved to database!]',
+              startTime: Date.now(),
+              endTime: Date.now(),
+              timestamp: Date.now()
+            });
+            
+            console.log('✅ Mobile transcripts successfully saved to database');
+            
+          } catch (error) {
+            console.error('❌ Mobile auto-save failed:', error);
+            
+            // Show error feedback
+            this.callbacks.onTranscript({
+              type: 'partial',
+              meetingId: this.meetingId,
+              role: this.role,
+              participantId: this.participantId,
+              text: '[❌ Failed to save segments - Please try manual save]',
+              startTime: Date.now(),
+              endTime: Date.now(),
+              timestamp: Date.now()
+            });
+          }
         }, 10000); // 10 seconds like desktop behavior
-        
-        // Show completion feedback
-        this.callbacks.onTranscript({
-          type: 'partial',
-          meetingId: this.meetingId,
-          role: this.role,
-          participantId: this.participantId,
-          text: '[✅ Speech captured - Tap mic again to add more (auto-save in 10s)]',
-          startTime: Date.now(),
-          endTime: Date.now(),
-          timestamp: Date.now()
-        });
       };
 
       this.simpleMobileSpeechRecognition.onerror = (event: any) => {
@@ -278,32 +308,6 @@ export class AudioStreamer {
       this.simpleMobileSpeechRecognition.onend = () => {
         console.log('🔚 Mobile speech recognition ended');
         this.isMobileSpeechActive = false;
-        
-        // AUTO-RESTART speech recognition if recording is still active (continuous mode)
-        if (this.isRecording && this.isMobileDevice()) {
-          console.log('🔄 AUTO-RESTARTING mobile speech recognition for continuous capture');
-          
-          // Small delay before restarting to avoid conflicts
-          setTimeout(() => {
-            if (this.isRecording && !this.isMobileSpeechActive) {
-              try {
-                this.simpleMobileSpeechRecognition.start();
-                console.log('✅ Mobile speech recognition AUTO-RESTARTED');
-              } catch (error) {
-                console.log('🔄 Speech restart delayed - will try again in 2 seconds');
-                setTimeout(() => {
-                  if (this.isRecording && !this.isMobileSpeechActive) {
-                    try {
-                      this.simpleMobileSpeechRecognition.start();
-                    } catch (retryError) {
-                      console.error('❌ Failed to auto-restart speech recognition:', retryError);
-                    }
-                  }
-                }, 2000);
-              }
-            }
-          }, 500);
-        }
       };
 
       console.log('✅ Simple mobile speech recognition initialized successfully (To-Do List pattern)');
@@ -1153,7 +1157,7 @@ export class AudioStreamer {
       });
 
       if (isMobile) {
-        console.log('📱 Mobile device detected - AUTO-STARTING speech capture (To-Do List pattern)');
+        console.log('📱 Mobile device detected - using simple speech approach (To-Do List pattern)');
         // For mobile, we don't need media stream - just the simple speech recognition
         this.isRecording = true;
         this.callbacks.onStatusChange('recording');
@@ -1164,30 +1168,13 @@ export class AudioStreamer {
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[📱 Mobile Recording Active] Original mic button auto-activated speech capture!',
+          text: '[📱 Mobile Recording Ready] Use the microphone button below to capture speech. Each tap records one phrase.',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
         });
 
-        // AUTO-START the mobile speech capture immediately
-        console.log('🎤 AUTO-STARTING mobile speech capture from original mic button');
-        const speechStarted = this.startMobileSpeechCapture();
-        
-        if (speechStarted) {
-          this.callbacks.onTranscript({
-            type: 'partial',
-            meetingId: this.meetingId,
-            role: this.role,
-            participantId: this.participantId,
-            text: '[🎤 Auto-started] Speech recognition activated - speak now or tap "Tap to Speak" for more',
-            startTime: Date.now(),
-            endTime: Date.now(),
-            timestamp: Date.now()
-          });
-        }
-
-        console.log('✅ Mobile recording mode activated with AUTO-STARTED speech capture');
+        console.log('✅ Mobile recording mode activated - ready for speech capture');
         return true;
       } else {
         console.log('🖥️ Desktop device detected - using full recording functionality');
@@ -1457,20 +1444,20 @@ export class AudioStreamer {
     }
   }
 
-  public async saveTranscriptsToBackend(): Promise<void> {
+  private async saveTranscriptsToBackend(): Promise<void> {
     try {
       console.log(`🔍 Starting transcript save process. Buffer has ${this.transcriptBuffer.length} transcripts`);
       
       if (this.transcriptBuffer.length === 0) {
         console.log('📝 No final transcripts to save');
         
-        // Show user feedback even when no transcripts to save
+        // Show feedback for empty buffer
         this.callbacks.onTranscript({
           type: 'partial',
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[ℹ️ No new transcripts to save]',
+          text: '[ℹ️ No transcripts to save - Buffer is empty]',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
@@ -1487,21 +1474,7 @@ export class AudioStreamer {
 
       console.log(`📤 Sending ${this.transcriptBuffer.length} transcripts to backend for database saving...`);
 
-      // Show saving feedback to user
-      this.callbacks.onTranscript({
-        type: 'partial',
-        meetingId: this.meetingId,
-        role: this.role,
-        participantId: this.participantId,
-        text: `[💾 Saving ${this.transcriptBuffer.length} transcript(s) to segments...]`,
-        startTime: Date.now(),
-        endTime: Date.now(),
-        timestamp: Date.now()
-      });
-
-      let saveSuccessful = false;
-
-      // Try WebSocket first (for desktop users)
+      // Send transcripts via WebSocket
       if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
         const saveMessage: AudioChunkMessage = {
           type: 'save_transcripts',
@@ -1512,7 +1485,7 @@ export class AudioStreamer {
           transcripts: this.transcriptBuffer
         };
 
-        console.log('📦 Sending message to backend:', {
+        console.log('📦 Sending message to backend via WebSocket:', {
           type: saveMessage.type,
           meetingId: saveMessage.meetingId,
           transcriptCount: saveMessage.transcripts?.length,
@@ -1521,10 +1494,10 @@ export class AudioStreamer {
 
         this.websocket.send(JSON.stringify(saveMessage));
         console.log('✅ Transcripts sent to backend via WebSocket');
-        saveSuccessful = true;
+        
       } else {
-        // Fallback: Send via HTTP API (especially important for mobile)
-        console.log('🔄 WebSocket not available, sending via HTTP API (mobile/fallback mode)...');
+        // Fallback: Send via HTTP API
+        console.log('🔄 WebSocket not available, sending via HTTP API...');
         
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
         const response = await fetch(`${baseUrl}/transcripts`, {
@@ -1542,45 +1515,23 @@ export class AudioStreamer {
 
         if (response.ok) {
           console.log('✅ Transcripts saved via HTTP API');
-          saveSuccessful = true;
         } else {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
       }
 
-      // Show success feedback to user
-      if (saveSuccessful) {
-        this.callbacks.onTranscript({
-          type: 'partial',
-          meetingId: this.meetingId,
-          role: this.role,
-          participantId: this.participantId,
-          text: `[✅ Successfully saved ${this.transcriptBuffer.length} transcript(s) to segments]`,
-          startTime: Date.now(),
-          endTime: Date.now(),
-          timestamp: Date.now()
-        });
-      }
-
       // Clear the buffer after successful saving
       console.log('🧹 Clearing transcript buffer after sending to backend');
+      const savedCount = this.transcriptBuffer.length;
       this.transcriptBuffer = [];
+      
+      // Show success feedback with count
+      console.log(`✅ Successfully saved ${savedCount} transcripts to database`);
+      
     } catch (error) {
       console.error('❌ Failed to save transcripts to backend:', error);
-      
-      // Show error feedback to user
-      this.callbacks.onTranscript({
-        type: 'partial',
-        meetingId: this.meetingId,
-        role: this.role,
-        participantId: this.participantId,
-        text: `[❌ Failed to save transcripts: ${error instanceof Error ? error.message : 'Unknown error'}]`,
-        startTime: Date.now(),
-        endTime: Date.now(),
-        timestamp: Date.now()
-      });
-      
       // Keep transcripts in buffer for retry
+      throw error; // Re-throw so calling code can handle the error
     }
   }
 
@@ -1606,20 +1557,9 @@ export class AudioStreamer {
     if (this.speechRecognition) {
       try {
         this.speechRecognition.stop();
-        console.log('🔇 Desktop speech recognition stopped');
+        console.log('🔇 Speech recognition stopped');
       } catch (error) {
-        console.warn('Could not stop desktop speech recognition:', error);
-      }
-    }
-
-    // Stop mobile speech recognition if running
-    if (this.simpleMobileSpeechRecognition && this.isMobileSpeechActive) {
-      try {
-        this.simpleMobileSpeechRecognition.stop();
-        this.isMobileSpeechActive = false;
-        console.log('🔇 Mobile speech recognition stopped');
-      } catch (error) {
-        console.warn('Could not stop mobile speech recognition:', error);
+        console.warn('Could not stop speech recognition:', error);
       }
     }
 

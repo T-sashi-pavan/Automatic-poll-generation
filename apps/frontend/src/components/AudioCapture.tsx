@@ -782,11 +782,11 @@ const AudioCapture = () => {
                     </div>
                     
                     <div className="text-xs text-green-300 space-y-1">
-                      <p>• Original mic button auto-starts speech capture</p>
-                      <p>• Speech recognition runs continuously while recording</p>
-                      <p>• Use "Tap to Speak" for additional manual captures</p>
-                      <p>• Segments auto-save after 10 seconds automatically</p>
+                      <p>• Tap the microphone button below to capture speech</p>
+                      <p>• Each tap records one phrase or sentence</p>
+                      <p>• Segments auto-save after 10 seconds (like desktop)</p>
                       <p>• Works with AI question generation like desktop</p>
+                      <p>• Use "Save Segments Now" for immediate saving</p>
                     </div>
                     
                     {/* Mobile Microphone Button (based on your To-Do List pattern) */}
@@ -808,6 +808,41 @@ const AudioCapture = () => {
                     >
                       <span className="text-2xl">🎤</span>
                       <span className="text-lg">Tap to Speak</span>
+                    </motion.button>
+                    
+                    {/* Manual Save Segments Button for Mobile */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async () => {
+                        if (audioStreamerRef.current) {
+                          console.log('💾 Manual mobile segment save requested');
+                          setStatusMessage('💾 Saving segments manually...');
+                          
+                          try {
+                            await audioStreamerRef.current.saveTranscriptsToBackend();
+                            setStatusMessage('✅ Mobile segments saved successfully!');
+                            
+                            // Clear message after 3 seconds
+                            setTimeout(() => {
+                              setStatusMessage('');
+                            }, 3000);
+                            
+                          } catch (error) {
+                            console.error('Manual save failed:', error);
+                            setStatusMessage('❌ Failed to save segments');
+                            
+                            // Clear error message after 3 seconds
+                            setTimeout(() => {
+                              setStatusMessage('');
+                            }, 3000);
+                          }
+                        }
+                      }}
+                      className="w-full px-4 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 rounded-lg text-green-300 font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                      <span className="text-lg">💾</span>
+                      <span>Save Segments Now</span>
                     </motion.button>
                   </div>
                 </div>
