@@ -49,6 +49,7 @@ export class AudioStreamer {
   // Simple mobile speech recognition (based on working To-Do List pattern)
   private simpleMobileSpeechRecognition: any = null;
   private isMobileSpeechActive = false;
+  private mobileSegmentTimer: NodeJS.Timeout | null = null; // Timer for mobile segment auto-saving
   
   private config: AudioStreamConfig = {
     sampleRate: 16000, // Vosk optimal sample rate
@@ -194,13 +195,36 @@ export class AudioStreamer {
         // Send to UI
         this.callbacks.onTranscript(transcriptMessage);
         
+        // Clear any existing mobile segment timer
+        if (this.mobileSegmentTimer) {
+          clearTimeout(this.mobileSegmentTimer);
+        }
+        
+        // Start 10-second timer for automatic segment saving (like desktop)
+        this.mobileSegmentTimer = setTimeout(() => {
+          console.log('⏰ [MOBILE] Auto-saving mobile transcripts to segments after 10 seconds');
+          this.saveTranscriptsToBackend();
+          
+          // Show feedback in UI
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[💾 Mobile segments auto-saved after 10 seconds]',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
+        }, 10000); // 10 seconds like desktop behavior
+        
         // Show completion feedback
         this.callbacks.onTranscript({
           type: 'partial',
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[✅ Speech captured successfully - Tap mic button again to add more]',
+          text: '[✅ Speech captured successfully - Will auto-save in 10 seconds]',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
@@ -283,6 +307,12 @@ export class AudioStreamer {
 
     try {
       console.log('🎤 Starting mobile speech capture (To-Do List pattern)...');
+      
+      // Reset the 10-second timer if user is adding more speech
+      if (this.mobileSegmentTimer) {
+        clearTimeout(this.mobileSegmentTimer);
+        console.log('⏰ Reset mobile segment timer - user adding more speech');
+      }
       
       // Start recognition (exactly like your working code: recognition.start())
       this.simpleMobileSpeechRecognition.start();
@@ -1448,6 +1478,13 @@ export class AudioStreamer {
       clearTimeout(this.forceFinalTimer);
       this.forceFinalTimer = null;
       console.log('⏰ Cleared force final timer');
+    }
+
+    // Clear mobile segment timer
+    if (this.mobileSegmentTimer) {
+      clearTimeout(this.mobileSegmentTimer);
+      this.mobileSegmentTimer = null;
+      console.log('⏰ Cleared mobile segment timer');
     }
 
     // Stop speech recognition if running
