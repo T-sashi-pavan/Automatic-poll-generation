@@ -772,21 +772,43 @@ const AudioCapture = () => {
               
               {/* Mobile Detection and Notification */}
               {isMobileDevice() && (
-                <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                    <p className="text-sm text-blue-200">
-                      {isChromeOnMobile() ? 
-                        "Mobile Chrome: Speech-only mode active (MediaRecorder disabled)" :
-                        "Mobile device: Enhanced audio capture enabled"
-                      }
-                    </p>
+                <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 mb-4">
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <p className="text-sm text-green-200 font-medium">
+                        📱 Mobile Speech Mode Active (To-Do List Pattern)
+                      </p>
+                    </div>
+                    
+                    <div className="text-xs text-green-300 space-y-1">
+                      <p>• Tap the microphone button below to capture speech</p>
+                      <p>• Each tap records one phrase or sentence</p>
+                      <p>• Speech is converted to text and added to segments</p>
+                      <p>• Works with AI question generation like desktop</p>
+                    </div>
+                    
+                    {/* Mobile Microphone Button (based on your To-Do List pattern) */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        if (audioStreamerRef.current) {
+                          console.log('🎤 Mobile microphone button clicked (To-Do List pattern)');
+                          const success = audioStreamerRef.current.startMobileSpeechCapture();
+                          if (success) {
+                            setStatusMessage('🎤 Listening... Speak clearly into your microphone');
+                          } else {
+                            setStatusMessage('❌ Failed to start mobile speech capture');
+                          }
+                        }
+                      }}
+                      className="w-full px-6 py-4 bg-blue-500/30 hover:bg-blue-500/40 border border-blue-500/50 rounded-lg text-blue-200 font-medium transition-colors duration-200 flex items-center justify-center gap-3"
+                    >
+                      <span className="text-2xl">🎤</span>
+                      <span className="text-lg">Tap to Speak</span>
+                    </motion.button>
                   </div>
-                  {isChromeOnMobile() && (
-                    <p className="text-xs text-blue-300 mt-1 opacity-80">
-                      Using optimized recording to prevent audio conflicts
-                    </p>
-                  )}
                 </div>
               )}
 

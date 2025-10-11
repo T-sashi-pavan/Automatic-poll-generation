@@ -46,6 +46,10 @@ export class AudioStreamer {
   private forceFinalTimer: NodeJS.Timeout | null = null; // Timer to force final transcripts
   private isMobileChromeBlocked = false; // Flag to completely block MediaRecorder on mobile Chrome
   
+  // Simple mobile speech recognition (based on working To-Do List pattern)
+  private simpleMobileSpeechRecognition: any = null;
+  private isMobileSpeechActive = false;
+  
   private config: AudioStreamConfig = {
     sampleRate: 16000, // Vosk optimal sample rate
     channels: 1, // Mono for ASR
@@ -120,6 +124,185 @@ export class AudioStreamer {
 
   setCallbacks(callbacks: Partial<typeof this.callbacks>) {
     Object.assign(this.callbacks, callbacks);
+  }
+
+  /**
+   * Simple mobile speech recognition based on working To-Do List pattern
+   * This replicates the exact functionality from your working project
+   */
+  private initializeSimpleMobileSpeech(): boolean {
+    try {
+      console.log('📱 Initializing simple mobile speech (To-Do List pattern)...');
+      
+      // Check for Web Speech API support (same as your working code)
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        console.error('❌ Web Speech API not supported');
+        return false;
+      }
+
+      // Create recognition instance (exactly like your working code)
+      this.simpleMobileSpeechRecognition = new SpeechRecognition();
+      this.simpleMobileSpeechRecognition.lang = 'en-US';
+      this.simpleMobileSpeechRecognition.interimResults = false; // Only final results (like your working code)
+      this.simpleMobileSpeechRecognition.maxAlternatives = 1;
+
+      // Set up event handlers (adapted from your working pattern)
+      this.simpleMobileSpeechRecognition.onstart = () => {
+        console.log('🎤 Mobile speech recognition started (To-Do List pattern)');
+        this.isMobileSpeechActive = true;
+        
+        // Show user feedback in transcript
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: '[🎤 Listening... Speak clearly into your microphone]',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
+      };
+
+      this.simpleMobileSpeechRecognition.onresult = (event: any) => {
+        console.log('📝 Mobile speech result received');
+        
+        // Get transcript (exactly like your working code: event.results[0][0].transcript)
+        const transcript = event.results[0][0].transcript;
+        console.log('🎯 Mobile transcript:', transcript);
+        
+        this.isMobileSpeechActive = false;
+        
+        // Send to transcript UI and processing pipeline (connect to existing workflow)
+        const transcriptMessage: TranscriptMessage = {
+          type: 'final',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: transcript,
+          startTime: Date.now() - 2000,
+          endTime: Date.now(),
+          timestamp: Date.now()
+        };
+
+        // Add to buffer for segment generation (connects to existing pipeline)
+        this.transcriptBuffer.push(transcriptMessage);
+        console.log(`💾 Mobile transcript added to buffer: "${transcript.substring(0, 50)}..."`);
+        
+        // Send to UI
+        this.callbacks.onTranscript(transcriptMessage);
+        
+        // Show completion feedback
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: '[✅ Speech captured successfully - Tap mic button again to add more]',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
+      };
+
+      this.simpleMobileSpeechRecognition.onerror = (event: any) => {
+        console.error('❌ Mobile speech recognition error:', event.error);
+        this.isMobileSpeechActive = false;
+        
+        // Simple error handling (like your working code)
+        let errorMessage = 'Speech recognition error';
+        if (event.error === 'not-allowed') {
+          errorMessage = 'Microphone access denied. Please allow microphone permissions.';
+        } else if (event.error === 'no-speech') {
+          errorMessage = 'No speech detected. Please speak clearly and try again.';
+        } else if (event.error === 'network') {
+          errorMessage = 'Network error. Please check your connection.';
+        }
+        
+        // Show error in transcript
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: `[❌ ${errorMessage}]`,
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
+      };
+
+      this.simpleMobileSpeechRecognition.onend = () => {
+        console.log('🔚 Mobile speech recognition ended');
+        this.isMobileSpeechActive = false;
+      };
+
+      console.log('✅ Simple mobile speech recognition initialized successfully (To-Do List pattern)');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Failed to initialize simple mobile speech:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Start mobile speech recognition (based on your working To-Do List startSpeechRecognition function)
+   * This replicates your exact startSpeechRecognition function for mobile devices
+   */
+  public startMobileSpeechCapture(): boolean {
+    if (!this.isMobileDevice()) {
+      console.warn('⚠️ startMobileSpeechCapture called on non-mobile device');
+      return false;
+    }
+
+    if (this.isMobileSpeechActive) {
+      console.log('🎤 Speech recognition already active, please wait for current session to complete');
+      return false;
+    }
+
+    if (!this.simpleMobileSpeechRecognition) {
+      console.log('📱 Initializing mobile speech for first use...');
+      const initialized = this.initializeSimpleMobileSpeech();
+      if (!initialized) {
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: '[❌ Mobile speech recognition not available on this device]',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
+        return false;
+      }
+    }
+
+    try {
+      console.log('🎤 Starting mobile speech capture (To-Do List pattern)...');
+      
+      // Start recognition (exactly like your working code: recognition.start())
+      this.simpleMobileSpeechRecognition.start();
+      
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Failed to start mobile speech capture:', error);
+      this.callbacks.onTranscript({
+        type: 'partial',
+        meetingId: this.meetingId,
+        role: this.role,
+        participantId: this.participantId,
+        text: '[❌ Failed to start mobile speech recognition]',
+        startTime: Date.now(),
+        endTime: Date.now(),
+        timestamp: Date.now()
+      });
+      return false;
+    }
   }
 
   private initializeSpeechRecognition(): boolean {
@@ -657,30 +840,32 @@ export class AudioStreamer {
 
   async initializeAudio(includeSystemAudio = false): Promise<boolean> {
     try {
-      // Check if we're on mobile Chrome with MediaRecorder blocked
-      if (this.isMobileChromeBlocked) {
-        console.log('📱 Mobile Chrome detected - initializing speech-only mode');
+      // Check if mobile device - use simple speech approach (To-Do List pattern)
+      if (this.isMobileDevice()) {
+        console.log('📱 Mobile device detected - using simple speech approach (To-Do List pattern)');
         
-        // Initialize ONLY speech recognition for mobile Chrome
-        const speechRecognitionAvailable = this.initializeSpeechRecognition();
-        if (speechRecognitionAvailable) {
-          console.log('✅ Speech recognition initialized for mobile Chrome (no MediaStream)');
+        // For mobile devices, use the simple speech recognition (no MediaStream/MediaRecorder conflicts)
+        const speechAvailable = this.initializeSimpleMobileSpeech();
+        if (speechAvailable) {
+          console.log('✅ Mobile speech recognition ready (To-Do List pattern)');
           this.callbacks.onStatusChange('connected');
           return true;
         } else {
-          console.error('❌ Speech recognition not available on mobile Chrome');
-          this.callbacks.onError('Speech recognition not available on this device');
+          console.error('❌ Mobile speech recognition failed');
+          this.callbacks.onError('Speech recognition not available on mobile device');
           return false;
         }
       }
 
-      // Standard initialization for desktop and non-Chrome mobile
+      // Desktop initialization (UNCHANGED - preserves existing functionality)
+      console.log('🖥️ Desktop device - initializing full audio system...');
+      
       // Initialize speech recognition first
       const speechRecognitionAvailable = this.initializeSpeechRecognition();
       if (speechRecognitionAvailable) {
-        console.log('✅ Speech recognition initialized');
+        console.log('✅ Desktop speech recognition initialized');
       } else {
-        console.warn('⚠️ Speech recognition not available, using audio streaming only');
+        console.warn('⚠️ Desktop speech recognition not available, using audio streaming only');
       }
 
       // Initialize AudioContext
@@ -885,28 +1070,52 @@ export class AudioStreamer {
 
   async startRecording(): Promise<boolean> {
     try {
-      if (!this.mediaStream) {
-        throw new Error('Audio stream not initialized');
-      }
-
-      if (!this.isConnected) {
-        const connected = await this.connectWebSocket();
-        if (!connected) return false;
-      }
-
-      // Check if we're on mobile Chrome - handle differently to avoid conflicts
-      const isChromeOnMobile = this.isChromeOnMobile();
+      // Enhanced mobile detection for To-Do List pattern
+      const isMobile = this.isMobileDevice();
       
-      if (isChromeOnMobile) {
-        console.log('📱 Mobile Chrome detected - using speech-first approach');
-        return this.startMobileFriendlyRecording();
-      }
+      console.log('🔍 Device analysis:', {
+        isMobile,
+        userAgent: navigator.userAgent,
+        approach: isMobile ? 'mobile-simple (To-Do List pattern)' : 'desktop-full'
+      });
 
-      // Desktop/non-conflicting browser - use full recording mode (UNCHANGED)
-      return this.startDesktopRecording();
+      if (isMobile) {
+        console.log('📱 Mobile device detected - using simple speech approach (To-Do List pattern)');
+        // For mobile, we don't need media stream - just the simple speech recognition
+        this.isRecording = true;
+        this.callbacks.onStatusChange('recording');
+        
+        // Show mobile-specific instructions
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: '[📱 Mobile Recording Ready] Use the microphone button below to capture speech. Each tap records one phrase.',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
+
+        console.log('✅ Mobile recording mode activated - ready for speech capture');
+        return true;
+      } else {
+        console.log('🖥️ Desktop device detected - using full recording functionality');
+        
+        if (!this.mediaStream) {
+          throw new Error('Audio stream not initialized for desktop recording');
+        }
+
+        if (!this.isConnected) {
+          const connected = await this.connectWebSocket();
+          if (!connected) return false;
+        }
+
+        return this.startDesktopRecording();
+      }
       
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      console.error('❌ Failed to start recording:', error);
       this.callbacks.onError('Recording initialization failed');
       return false;
     }
