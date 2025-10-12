@@ -750,121 +750,115 @@ const AudioCapture = () => {
           <GlassCard className="p-6">
             <h3 className="text-xl font-bold text-white mb-4">Recording Controls</h3>
             <div className="space-y-4">
-              {/* Hide original mic button on mobile devices, show only on desktop */}
-              {!isMobileDevice() && (
-                <>
-                  <div className="flex items-center justify-center">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={status === 'recording' ? handleStopRecording : handleStartRecording}
-                      disabled={status === 'connecting'}
-                      className={`w-20 h-20 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
-                        status === 'recording'
-                          ? 'bg-red-500 hover:bg-red-600'
-                          : 'bg-primary-500 hover:bg-primary-600'
-                      } transition-colors duration-200`}
-                    >
-                      {status === 'recording' ? (
-                        <Square className="w-8 h-8 text-white" />
-                      ) : (
-                        <Mic className="w-8 h-8 text-white" />
-                      )}
-                    </motion.button>
-                  </div>
-                  
-                  <div className="text-center">
-                    <p className="text-sm text-gray-400">
-                      {status === 'recording' ? 'Click to Stop Recording' : 'Click to Start Recording'}
-                    </p>
-                  </div>
-                </>
-              )}
+              {/* Main Recording Button - Hidden on Mobile */}
+              <div className={`flex items-center justify-center ${isMobileDevice() ? 'hidden' : ''}`}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={status === 'recording' ? handleStopRecording : handleStartRecording}
+                  disabled={status === 'connecting'}
+                  className={`w-20 h-20 rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
+                    status === 'recording'
+                      ? 'bg-red-500 hover:bg-red-600'
+                      : 'bg-primary-500 hover:bg-primary-600'
+                  } transition-colors duration-200`}
+                >
+                  {status === 'recording' ? (
+                    <Square className="w-8 h-8 text-white" />
+                  ) : (
+                    <Mic className="w-8 h-8 text-white" />
+                  )}
+                </motion.button>
+              </div>
               
-              {/* Mobile Detection and Innovative Mic Design */}
+              {/* Mobile Detection and Notification */}
               {isMobileDevice() && (
-                <div className="bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 border border-blue-500/30 rounded-2xl p-6 mb-4">
-                  <div className="text-center space-y-4">
+                <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 mb-4">
+                  <div className="text-center space-y-3">
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <p className="text-sm text-green-200 font-medium">
-                        📱 Mobile Continuous Recording Mode
+                        📱 Mobile Speech Mode Active (To-Do List Pattern)
                       </p>
                     </div>
                     
-                    <div className="text-xs text-blue-200 space-y-1 bg-black/20 rounded-lg p-3">
-                      <p>• Tap the mic below for CONTINUOUS recording</p>
-                      <p>• Speak naturally - pauses handled automatically</p>
+                    <div className="text-xs text-green-300 space-y-1">
+                      <p>• Tap the button below to start CONTINUOUS recording</p>
+                      <p>• Speak naturally - pauses and breaks are handled automatically</p>
                       <p>• Auto-saves after 10+ seconds of silence</p>
                       <p>• Auto-generates AI questions after each save</p>
+                      <p>• Tap button again to stop continuous recording</p>
                     </div>
                     
-                    {/* Innovative Mobile Microphone Design */}
-                    <div className="flex justify-center py-4">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                          if (audioStreamerRef.current) {
-                            console.log('🎤 Mobile continuous recording button clicked');
-                            try {
-                              // Show connecting status
-                              toast.loading('🔗 Connecting to backend...', { id: 'mobile-connect' });
-                              
-                              const success = await audioStreamerRef.current.startMobileSpeechCapture();
-                              if (success) {
-                                // Check if we're starting or stopping
-                                const isStarting = !(audioStreamerRef.current as any).mobileContinuousMode;
-                                toast.success(isStarting ? 
-                                  '🎤 Continuous recording started! Speak naturally!' : 
-                                  '🛑 Continuous recording stopped!', 
-                                  { id: 'mobile-connect' }
-                                );
-                              } else {
-                                toast.error('❌ Failed to toggle mobile speech capture', { id: 'mobile-connect' });
-                              }
-                            } catch (error) {
-                              console.error('❌ Mobile speech capture error:', error);
-                              toast.error('❌ Failed to connect to backend', { id: 'mobile-connect' });
-                            }
-                          }
-                        }}
-                        className="relative"
-                      >
-                        {/* Innovative Mic Design */}
-                        <div className="relative w-32 h-32">
-                          {/* Outer glow ring */}
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-pink-400/30 animate-pulse"></div>
-                          
-                          {/* Middle ring */}
-                          <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 animate-spin-slow"></div>
-                          
-                          {/* Inner mic circle */}
-                          <div className="absolute inset-4 rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 shadow-2xl flex items-center justify-center hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 transition-all duration-300">
-                            {/* Mic icon */}
-                            <Mic className="w-12 h-12 text-white drop-shadow-lg" />
+                    {/* Mobile Microphone Button (continuous mode) */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async () => {
+                        if (audioStreamerRef.current) {
+                          console.log('🎤 Mobile continuous recording button clicked');
+                          try {
+                            // Show connecting status
+                            toast.loading('🔗 Connecting to backend...', { id: 'mobile-connect' });
                             
-                            {/* Recording indicator dot */}
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white"></div>
-                          </div>
+                            const success = await audioStreamerRef.current.startMobileSpeechCapture();
+                            if (success) {
+                              // Check if we're starting or stopping
+                              const isStarting = !(audioStreamerRef.current as any).mobileContinuousMode;
+                              toast.success(isStarting ? 
+                                '🎤 Continuous recording started! Speak naturally!' : 
+                                '🛑 Continuous recording stopped!', 
+                                { id: 'mobile-connect' }
+                              );
+                            } else {
+                              toast.error('❌ Failed to toggle mobile speech capture', { id: 'mobile-connect' });
+                            }
+                          } catch (error) {
+                            console.error('❌ Mobile speech capture error:', error);
+                            toast.error('❌ Failed to connect to backend', { id: 'mobile-connect' });
+                          }
+                        }
+                      }}
+                      className="w-full px-6 py-4 bg-blue-500/30 hover:bg-blue-500/40 border border-blue-500/50 rounded-lg text-blue-200 font-medium transition-colors duration-200 flex items-center justify-center gap-3"
+                    >
+                      <span className="text-2xl">🎤</span>
+                      <span className="text-lg">Start/Stop Continuous Recording</span>
+                    </motion.button>
+                    
+                    {/* Manual Save Segments Button for Mobile - Hidden but functional */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={async () => {
+                        if (audioStreamerRef.current) {
+                          console.log('💾 Manual mobile segment save requested');
+                          toast.loading('💾 Saving segments manually...', { id: 'manual-save' });
                           
-                          {/* Sound waves animation */}
-                          <div className="absolute -inset-2 rounded-full border-2 border-blue-400/30 animate-ping"></div>
-                          <div className="absolute -inset-4 rounded-full border border-purple-400/20 animate-ping animation-delay-200"></div>
-                          <div className="absolute -inset-6 rounded-full border border-pink-400/10 animate-ping animation-delay-400"></div>
-                        </div>
-                        
-                        {/* Button label */}
-                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-                          <div className="text-sm font-semibold text-white bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
-                            Tap to Record
-                          </div>
-                        </div>
-                      </motion.button>
-                    </div>
+                          try {
+                            // Call public save method
+                            await (audioStreamerRef.current as any).saveTranscriptsToBackend();
+                            toast.success('✅ Mobile segments saved successfully!', { id: 'manual-save' });
+                            
+                          } catch (error) {
+                            console.error('Manual save failed:', error);
+                            toast.error('❌ Failed to save segments', { id: 'manual-save' });
+                          }
+                        }
+                      }}
+                      className="hidden"
+                    >
+                      <span className="text-lg">💾</span>
+                      <span>Save Segments Now</span>
+                    </motion.button>
                   </div>
                 </div>
               )}
+
+              <div className={`text-center ${isMobileDevice() ? 'hidden' : ''}`}>
+                <p className="text-sm text-gray-400">
+                  {status === 'recording' ? 'Click to Stop Recording' : 'Click to Start Recording'}
+                </p>
+              </div>
 
               <div className="flex items-center justify-center space-x-4">
                 <motion.button
