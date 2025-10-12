@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Innovative Mobile Mic Design Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+        }
+        
+        .animation-delay-200 {
+            animation-delay: 200ms;
+        }
+        
+        .animation-delay-400 {
+            animation-delay: 400ms;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 min-h-screen flex items-center justify-center p-4">
+    
+    <div class="text-center space-y-8">
+        <h1 class="text-3xl font-bold text-white mb-8">Mobile Mic Design Preview</h1>
+        
+        <!-- Desktop Style (Hidden on Mobile) -->
+        <div class="hidden md:block">
+            <h2 class="text-xl text-gray-300 mb-4">Desktop Style (Original)</h2>
+            <div class="w-20 h-20 rounded-full flex items-center justify-center bg-blue-500 hover:bg-blue-600 transition-colors duration-200 mx-auto">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                </svg>
+            </div>
+        </div>
+        
+        <!-- Mobile Style (Innovative Design) -->
+        <div class="md:hidden">
+            <h2 class="text-xl text-gray-300 mb-6">Mobile Style (Innovative)</h2>
+            
+            <div class="bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 border border-blue-500/30 rounded-2xl p-6 max-w-sm mx-auto">
+                <div class="flex items-center justify-center space-x-2 mb-4">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <p class="text-sm text-green-200 font-medium">
+                        📱 Mobile Continuous Recording Mode
+                    </p>
+                </div>
+                
+                <div class="text-xs text-blue-200 space-y-1 bg-black/20 rounded-lg p-3 mb-6">
+                    <p>• Tap the mic below for CONTINUOUS recording</p>
+                    <p>• Speak naturally - pauses handled automatically</p>
+                    <p>• Auto-saves after 10+ seconds of silence</p>
+                    <p>• Auto-generates AI questions after each save</p>
+                </div>
+                
+                <!-- Innovative Mobile Microphone Design -->
+                <div class="flex justify-center py-4">
+                    <button class="relative" onclick="toggleRecording()">
+                        <!-- Innovative Mic Design -->
+                        <div class="relative w-32 h-32">
+                            <!-- Outer glow ring -->
+                            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-pink-400/30 animate-pulse"></div>
+                            
+                            <!-- Middle ring -->
+                            <div class="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 animate-spin-slow"></div>
+                            
+                            <!-- Inner mic circle -->
+                            <div class="absolute inset-4 rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 shadow-2xl flex items-center justify-center hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 transition-all duration-300">
+                                <!-- Mic icon -->
+                                <svg class="w-12 h-12 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                                </svg>
+                                
+                                <!-- Recording indicator dot -->
+                                <div id="recordingDot" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white hidden"></div>
+                            </div>
+                            
+                            <!-- Sound waves animation -->
+                            <div class="absolute -inset-2 rounded-full border-2 border-blue-400/30 animate-ping"></div>
+                            <div class="absolute -inset-4 rounded-full border border-purple-400/20 animate-ping animation-delay-200"></div>
+                            <div class="absolute -inset-6 rounded-full border border-pink-400/10 animate-ping animation-delay-400"></div>
+                        </div>
+                        
+                        <!-- Button label -->
+                        <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
+                            <div id="buttonLabel" class="text-sm font-semibold text-white bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
+                                Tap to Record
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Both styles for comparison -->
+        <div class="hidden">
+            <h2 class="text-xl text-gray-300 mb-6">Side by Side Comparison</h2>
+            <div class="flex flex-col md:flex-row items-center justify-center space-y-6 md:space-y-0 md:space-x-12">
+                <!-- Desktop Style -->
+                <div class="text-center">
+                    <h3 class="text-lg text-gray-400 mb-4">Desktop</h3>
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center bg-blue-500 hover:bg-blue-600 transition-colors duration-200">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Mobile Style -->
+                <div class="text-center">
+                    <h3 class="text-lg text-gray-400 mb-4">Mobile</h3>
+                    <div class="relative w-32 h-32">
+                        <div class="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-pink-400/30 animate-pulse"></div>
+                        <div class="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500/40 via-purple-500/40 to-pink-500/40 animate-spin-slow"></div>
+                        <div class="absolute inset-4 rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 shadow-2xl flex items-center justify-center">
+                            <svg class="w-12 h-12 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                            </svg>
+                            <div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white"></div>
+                        </div>
+                        <div class="absolute -inset-2 rounded-full border-2 border-blue-400/30 animate-ping"></div>
+                        <div class="absolute -inset-4 rounded-full border border-purple-400/20 animate-ping animation-delay-200"></div>
+                        <div class="absolute -inset-6 rounded-full border border-pink-400/10 animate-ping animation-delay-400"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let isRecording = false;
+        
+        function toggleRecording() {
+            isRecording = !isRecording;
+            const dot = document.getElementById('recordingDot');
+            const label = document.getElementById('buttonLabel');
+            
+            if (isRecording) {
+                dot.classList.remove('hidden');
+                label.textContent = 'Recording...';
+                label.classList.add('bg-red-500/40');
+                label.classList.remove('bg-black/40');
+            } else {
+                dot.classList.add('hidden');
+                label.textContent = 'Tap to Record';
+                label.classList.remove('bg-red-500/40');
+                label.classList.add('bg-black/40');
+            }
+        }
+        
+        // Simulate device detection
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        }
+        
+        // Show appropriate design based on device
+        if (isMobileDevice()) {
+            document.querySelector('.md\\:hidden').classList.remove('md:hidden');
+            document.querySelector('.hidden.md\\:block').style.display = 'none';
+        } else {
+            document.querySelector('.hidden.md\\:block').classList.remove('hidden');
+            document.querySelector('.md\\:hidden').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
