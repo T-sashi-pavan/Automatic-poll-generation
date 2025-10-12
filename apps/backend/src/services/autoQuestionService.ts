@@ -31,8 +31,11 @@ export class AutoQuestionService {
   /**
    * Automatically generate questions for a segment
    * This is called after a segment is successfully saved
+   * @param segmentId - The segment ID to generate questions for
+   * @param meetingId - The meeting ID  
+   * @param maxQuestions - Optional limit on number of questions (overrides automatic calculation for quality control)
    */
-  async generateQuestionsForSegment(segmentId: string, meetingId: string): Promise<void> {
+  async generateQuestionsForSegment(segmentId: string, meetingId: string, maxQuestions?: number): Promise<void> {
     try {
       console.log(`🚀 [AUTO-QUESTIONS] Request sent to Gemini API for Segment ${segmentId}`);
 
@@ -44,9 +47,11 @@ export class AutoQuestionService {
       }
       console.log(`✅ [AUTO-QUESTIONS] Segment found: ${segment.segmentNumber} with ${segment.transcriptText.length} chars`);
 
-      // Get recommended question count based on transcript length
-      const questionCount = this.calculateRecommendedQuestions(segment.transcriptText);
-      console.log(`📊 [AUTO-QUESTIONS] Calculated question count: ${questionCount}`);
+      // Get recommended question count based on transcript length or user preference
+      const calculatedQuestions = this.calculateRecommendedQuestions(segment.transcriptText);
+      const questionCount = maxQuestions ? Math.min(maxQuestions, calculatedQuestions) : calculatedQuestions;
+      
+      console.log(`📊 [AUTO-QUESTIONS] Question count: ${questionCount} ${maxQuestions ? `(limited by maxQuestions: ${maxQuestions}, calculated: ${calculatedQuestions})` : `(calculated: ${calculatedQuestions})`}`);
       
       // Configure question generation - combination of Multiple Choice + True/False
       const config: IQuestionConfig = {
@@ -122,13 +127,19 @@ export class AutoQuestionService {
   /**
    * Automatically generate questions for transcript text (direct from WebSocket)
    * This is called when transcripts are saved via WebSocket
+   * @param transcriptText - The transcript text to generate questions from
+   * @param meetingId - The meeting ID
+   * @param maxQuestions - Optional limit on number of questions (overrides automatic calculation for quality control)
    */
-  async generateQuestionsForTranscripts(transcriptText: string, meetingId: string): Promise<void> {
+  async generateQuestionsForTranscripts(transcriptText: string, meetingId: string, maxQuestions?: number): Promise<void> {
     try {
       console.log(`🚀 [AUTO-QUESTIONS] Request sent to Gemini API for transcript text (${transcriptText.length} chars)`);
 
-      // Get recommended question count based on transcript length
-      const questionCount = this.calculateRecommendedQuestions(transcriptText);
+      // Get recommended question count based on transcript length or user preference
+      const calculatedQuestions = this.calculateRecommendedQuestions(transcriptText);
+      const questionCount = maxQuestions ? Math.min(maxQuestions, calculatedQuestions) : calculatedQuestions;
+      
+      console.log(`📊 [AUTO-QUESTIONS] Question count: ${questionCount} ${maxQuestions ? `(limited by maxQuestions: ${maxQuestions}, calculated: ${calculatedQuestions})` : `(calculated: ${calculatedQuestions})`}`);
       
       // Configure question generation - combination of Multiple Choice + True/False
       const config: IQuestionConfig = {
@@ -214,42 +225,41 @@ export class AutoQuestionService {
 
   /**
    * Calculate recommended number of questions based on transcript length
-   * Uses the same logic as the frontend recommendation system
+   * Updated to focus on quality over quantity - generates fewer, higher-quality questions
    */
   private calculateRecommendedQuestions(transcriptText: string): number {
     const wordCount = transcriptText.split(/\s+/).length;
     const charCount = transcriptText.length;
 
-    // Base calculation on word count with character count as secondary factor
+    // QUALITY-FOCUSED APPROACH: Generate fewer, better questions
+    // This prevents overwhelming users with too many questions
     let recommendedQuestions;
 
-    if (wordCount <= 50) {
+    if (wordCount <= 50 || charCount <= 300) {
+      // Very short segments - 1 high-quality question
       recommendedQuestions = 1;
-    } else if (wordCount <= 100) {
+    } else if (wordCount <= 150 || charCount <= 900) {
+      // Short segments - 2 focused questions  
       recommendedQuestions = 2;
-    } else if (wordCount <= 200) {
+    } else if (wordCount <= 300 || charCount <= 1800) {
+      // Medium segments - 3 quality questions
       recommendedQuestions = 3;
-    } else if (wordCount <= 400) {
+    } else if (wordCount <= 500 || charCount <= 3000) {
+      // Long segments - 4 targeted questions
       recommendedQuestions = 4;
-    } else if (wordCount <= 600) {
-      recommendedQuestions = 5;
-    } else if (wordCount <= 800) {
-      recommendedQuestions = 6;
-    } else if (wordCount <= 1000) {
-      recommendedQuestions = 7;
     } else {
-      // For very long transcripts, cap at 10 questions
-      recommendedQuestions = Math.min(10, Math.ceil(wordCount / 150));
+      // Very long segments - cap at 5 questions for quality focus
+      // Better to have 5 excellent questions than 10 mediocre ones
+      recommendedQuestions = 5;
     }
 
-    // Adjust based on character count if significantly different
-    const charBasedEstimate = Math.ceil(charCount / 800); // ~800 chars per question
-    if (Math.abs(charBasedEstimate - recommendedQuestions) > 2) {
-      recommendedQuestions = Math.round((recommendedQuestions + charBasedEstimate) / 2);
-    }
-
-    // Ensure minimum of 1 and maximum of 10
-    return Math.max(1, Math.min(10, recommendedQuestions));
+    // QUALITY ASSURANCE: Always prioritize quality over quantity
+    // Ensure minimum of 1, maximum of 5 for optimal learning experience
+    const finalCount = Math.max(1, Math.min(5, recommendedQuestions));
+    
+    console.log(`🎯 [AUTO-QUESTIONS] Quality-focused question count: ${finalCount} questions for ${wordCount} words (was: ${recommendedQuestions} before quality cap)`);
+    
+    return finalCount;
   }
 
   /**
