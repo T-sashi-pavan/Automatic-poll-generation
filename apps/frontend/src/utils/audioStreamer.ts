@@ -50,6 +50,9 @@ export class AudioStreamer {
   private simpleMobileSpeechRecognition: any = null;
   private isMobileSpeechActive = false;
   private mobileSegmentTimer: NodeJS.Timeout | null = null; // Timer for mobile segment auto-saving
+  private mobileContinuousMode = false; // Flag for continuous mobile recording
+  private mobileAutoRestartTimer: NodeJS.Timeout | null = null; // Timer to auto-restart speech recognition
+  private mobileLastSpeechTime = 0; // Track last speech activity
   
   private config: AudioStreamConfig = {
     sampleRate: 16000, // Vosk optimal sample rate
@@ -143,24 +146,27 @@ export class AudioStreamer {
         return false;
       }
 
-      // Create recognition instance (exactly like your working code)
+      // Create recognition instance (CONTINUOUS MODE for mobile)
       this.simpleMobileSpeechRecognition = new SpeechRecognition();
       this.simpleMobileSpeechRecognition.lang = 'en-US';
-      this.simpleMobileSpeechRecognition.interimResults = false; // Only final results (like your working code)
+      this.simpleMobileSpeechRecognition.interimResults = true; // Enable interim results for continuous feedback
       this.simpleMobileSpeechRecognition.maxAlternatives = 1;
+      this.simpleMobileSpeechRecognition.continuous = true; // CONTINUOUS RECORDING like desktop
 
-      // Set up event handlers (adapted from your working pattern)
+      // Set up event handlers (continuous mobile recording)
       this.simpleMobileSpeechRecognition.onstart = () => {
-        console.log('🎤 Mobile speech recognition started (To-Do List pattern)');
+        console.log('🎤 Mobile continuous speech recognition started');
         this.isMobileSpeechActive = true;
+        this.mobileContinuousMode = true;
+        this.mobileLastSpeechTime = Date.now();
         
-        // Show user feedback in transcript
+        // Show continuous mode feedback
         this.callbacks.onTranscript({
           type: 'partial',
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[🎤 Listening... Speak clearly into your microphone]',
+          text: '[🎤 CONTINUOUS RECORDING ACTIVE - Speak naturally, pauses are OK]',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
@@ -168,75 +174,58 @@ export class AudioStreamer {
       };
 
       this.simpleMobileSpeechRecognition.onresult = (event: any) => {
-        console.log('📝 Mobile speech result received');
+        console.log('📝 Mobile continuous speech result received');
         
-        // Get transcript (exactly like your working code: event.results[0][0].transcript)
-        const transcript = event.results[0][0].transcript;
-        console.log('🎯 Mobile transcript:', transcript);
+        // Update last speech activity time
+        this.mobileLastSpeechTime = Date.now();
         
-        this.isMobileSpeechActive = false;
-        
-        // Send to transcript UI and processing pipeline (connect to existing workflow)
-        const transcriptMessage: TranscriptMessage = {
-          type: 'final',
-          meetingId: this.meetingId,
-          role: this.role,
-          participantId: this.participantId,
-          text: transcript,
-          startTime: Date.now() - 2000,
-          endTime: Date.now(),
-          timestamp: Date.now()
-        };
+        // Process all results (both interim and final)
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = result[0].transcript;
+          const isFinal = result.isFinal;
+          
+          console.log(`🎯 Mobile transcript (${isFinal ? 'FINAL' : 'interim'}):`, transcript);
+          
+          // Create transcript message
+          const transcriptMessage: TranscriptMessage = {
+            type: isFinal ? 'final' : 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: transcript,
+            startTime: Date.now() - 2000,
+            endTime: Date.now(),
+            timestamp: Date.now()
+          };
 
-        // Add to buffer for segment generation (connects to existing pipeline)
-        this.transcriptBuffer.push(transcriptMessage);
-        console.log(`💾 Mobile transcript added to buffer: "${transcript.substring(0, 50)}..."`);
-        
-        // Send to UI
-        this.callbacks.onTranscript(transcriptMessage);
+          // Add final results to buffer for segment generation
+          if (isFinal) {
+            this.transcriptBuffer.push(transcriptMessage);
+            console.log(`💾 Mobile final transcript added to buffer: "${transcript.substring(0, 50)}..."`);
+          }
+          
+          // Send to UI (both interim and final)
+          this.callbacks.onTranscript(transcriptMessage);
+        }
         
         // Clear any existing mobile segment timer
         if (this.mobileSegmentTimer) {
           clearTimeout(this.mobileSegmentTimer);
         }
         
-        // Show immediate feedback about upcoming auto-save
-        this.callbacks.onTranscript({
-          type: 'partial',
-          meetingId: this.meetingId,
-          role: this.role,
-          participantId: this.participantId,
-          text: '[✅ Speech captured - Auto-saving to database in 10 seconds...]',
-          startTime: Date.now(),
-          endTime: Date.now(),
-          timestamp: Date.now()
-        });
-        
-        // Add countdown feedback (5 seconds remaining)
-        setTimeout(() => {
-          this.callbacks.onTranscript({
-            type: 'partial',
-            meetingId: this.meetingId,
-            role: this.role,
-            participantId: this.participantId,
-            text: '[⏰ Auto-save in 5 seconds...]',
-            startTime: Date.now(),
-            endTime: Date.now(),
-            timestamp: Date.now()
-          });
-        }, 5000);
-        
-        // Start 10-second timer for automatic segment saving (like desktop)
+        // Start 10-second silence detection timer
         this.mobileSegmentTimer = setTimeout(async () => {
-          console.log('⏰ [MOBILE] Auto-saving mobile transcripts to database after 10 seconds');
+          const silenceDuration = Date.now() - this.mobileLastSpeechTime;
+          console.log(`⏰ [MOBILE] ${silenceDuration}ms of silence detected - auto-saving and generating questions`);
           
-          // Show countdown feedback
+          // Show silence detection feedback
           this.callbacks.onTranscript({
             type: 'partial',
             meetingId: this.meetingId,
             role: this.role,
             participantId: this.participantId,
-            text: '[⏰ 10 seconds elapsed - Saving segments to database...]',
+            text: '[⏰ 10+ seconds of silence - Saving segments and generating questions...]',
             startTime: Date.now(),
             endTime: Date.now(),
             timestamp: Date.now()
@@ -252,65 +241,90 @@ export class AudioStreamer {
               meetingId: this.meetingId,
               role: this.role,
               participantId: this.participantId,
-              text: '[💾 ✅ Mobile segments successfully saved to database!]',
+              text: '[💾 ✅ Segments saved! Generating AI questions automatically...]',
               startTime: Date.now(),
               endTime: Date.now(),
               timestamp: Date.now()
             });
             
-            console.log('✅ Mobile transcripts successfully saved to database');
+            console.log('✅ Mobile transcripts auto-saved, continuing continuous recording...');
+            
+            // Continue continuous recording (don't stop)
+            if (this.mobileContinuousMode) {
+              console.log('🔄 Continuing continuous mobile recording...');
+            }
             
           } catch (error) {
             console.error('❌ Mobile auto-save failed:', error);
             
-            // Show error feedback
+            // Show error feedback but continue recording
             this.callbacks.onTranscript({
               type: 'partial',
               meetingId: this.meetingId,
               role: this.role,
               participantId: this.participantId,
-              text: '[❌ Failed to save segments - Please try manual save]',
+              text: '[❌ Auto-save failed - Continuing recording...]',
               startTime: Date.now(),
               endTime: Date.now(),
               timestamp: Date.now()
             });
           }
-        }, 10000); // 10 seconds like desktop behavior
+        }, 10000); // 10 seconds of silence
       };
 
       this.simpleMobileSpeechRecognition.onerror = (event: any) => {
         console.error('❌ Mobile speech recognition error:', event.error);
-        this.isMobileSpeechActive = false;
         
-        // Simple error handling (like your working code)
-        let errorMessage = 'Speech recognition error';
+        // Handle specific errors with auto-restart for continuous mode
         if (event.error === 'not-allowed') {
-          errorMessage = 'Microphone access denied. Please allow microphone permissions.';
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[❌ Microphone access denied. Please allow microphone permissions.]',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
+          this.mobileContinuousMode = false;
+          
         } else if (event.error === 'no-speech') {
-          errorMessage = 'No speech detected. Please speak clearly and try again.';
+          // Don't show error for no-speech in continuous mode, just restart
+          console.log('🔄 No speech detected, auto-restarting continuous recognition...');
+          this.autoRestartMobileSpeech();
+          
         } else if (event.error === 'network') {
-          errorMessage = 'Network error. Please check your connection.';
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[⚠️ Network error - Attempting to restart...]',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
+          this.autoRestartMobileSpeech();
+          
+        } else {
+          console.warn('Speech recognition error, attempting restart:', event.error);
+          this.autoRestartMobileSpeech();
         }
-        
-        // Show error in transcript
-        this.callbacks.onTranscript({
-          type: 'partial',
-          meetingId: this.meetingId,
-          role: this.role,
-          participantId: this.participantId,
-          text: `[❌ ${errorMessage}]`,
-          startTime: Date.now(),
-          endTime: Date.now(),
-          timestamp: Date.now()
-        });
       };
 
       this.simpleMobileSpeechRecognition.onend = () => {
         console.log('🔚 Mobile speech recognition ended');
         this.isMobileSpeechActive = false;
+        
+        // Auto-restart if in continuous mode
+        if (this.mobileContinuousMode) {
+          console.log('🔄 Auto-restarting continuous mobile speech recognition...');
+          this.autoRestartMobileSpeech();
+        }
       };
 
-      console.log('✅ Simple mobile speech recognition initialized successfully (To-Do List pattern)');
+      console.log('✅ Simple mobile speech recognition initialized successfully (Continuous Mode)');
       return true;
       
     } catch (error) {
@@ -320,8 +334,40 @@ export class AudioStreamer {
   }
 
   /**
-   * Start mobile speech recognition (based on your working To-Do List startSpeechRecognition function)
-   * This replicates your exact startSpeechRecognition function for mobile devices
+   * Auto-restart mobile speech recognition for continuous mode
+   */
+  private autoRestartMobileSpeech(): void {
+    if (!this.mobileContinuousMode || !this.simpleMobileSpeechRecognition) {
+      return;
+    }
+
+    // Clear any existing restart timer
+    if (this.mobileAutoRestartTimer) {
+      clearTimeout(this.mobileAutoRestartTimer);
+    }
+
+    // Wait a short delay before restarting
+    this.mobileAutoRestartTimer = setTimeout(() => {
+      if (this.mobileContinuousMode && this.simpleMobileSpeechRecognition) {
+        try {
+          console.log('🔄 Auto-restarting mobile speech recognition...');
+          this.simpleMobileSpeechRecognition.start();
+        } catch (error) {
+          console.error('Failed to auto-restart mobile speech:', error);
+          // Try again after a longer delay
+          setTimeout(() => {
+            if (this.mobileContinuousMode) {
+              this.autoRestartMobileSpeech();
+            }
+          }, 2000);
+        }
+      }
+    }, 1000); // 1 second delay before restart
+  }
+
+  /**
+   * Start/Stop mobile speech recognition (continuous mode)
+   * This creates a toggle button for continuous recording
    */
   public startMobileSpeechCapture(): boolean {
     if (!this.isMobileDevice()) {
@@ -329,8 +375,16 @@ export class AudioStreamer {
       return false;
     }
 
+    // Toggle continuous recording
+    if (this.mobileContinuousMode) {
+      console.log('🛑 Stopping continuous mobile recording...');
+      this.stopMobileContinuousRecording();
+      return true;
+    }
+
     if (this.isMobileSpeechActive) {
-      console.log('🎤 Speech recognition already active, please wait for current session to complete');
+      console.log('🎤 Speech recognition already active, stopping first...');
+      this.stopMobileContinuousRecording();
       return false;
     }
 
@@ -353,15 +407,9 @@ export class AudioStreamer {
     }
 
     try {
-      console.log('🎤 Starting mobile speech capture (To-Do List pattern)...');
+      console.log('🎤 Starting continuous mobile speech capture...');
       
-      // Reset the 10-second timer if user is adding more speech
-      if (this.mobileSegmentTimer) {
-        clearTimeout(this.mobileSegmentTimer);
-        console.log('⏰ Reset mobile segment timer - user adding more speech');
-      }
-      
-      // Start recognition (exactly like your working code: recognition.start())
+      // Start continuous recognition
       this.simpleMobileSpeechRecognition.start();
       
       return true;
@@ -380,6 +428,54 @@ export class AudioStreamer {
       });
       return false;
     }
+  }
+
+  /**
+   * Stop continuous mobile recording
+   */
+  public stopMobileContinuousRecording(): void {
+    console.log('🛑 Stopping mobile continuous recording...');
+    
+    this.mobileContinuousMode = false;
+    this.isMobileSpeechActive = false;
+    
+    // Clear timers
+    if (this.mobileSegmentTimer) {
+      clearTimeout(this.mobileSegmentTimer);
+      this.mobileSegmentTimer = null;
+    }
+    
+    if (this.mobileAutoRestartTimer) {
+      clearTimeout(this.mobileAutoRestartTimer);
+      this.mobileAutoRestartTimer = null;
+    }
+    
+    // Stop speech recognition
+    if (this.simpleMobileSpeechRecognition) {
+      try {
+        this.simpleMobileSpeechRecognition.stop();
+      } catch (error) {
+        console.warn('Error stopping mobile speech recognition:', error);
+      }
+    }
+    
+    // Save any remaining transcripts
+    if (this.transcriptBuffer.length > 0) {
+      console.log('💾 Saving remaining transcripts before stopping...');
+      this.saveTranscriptsToBackend();
+    }
+    
+    // Show feedback
+    this.callbacks.onTranscript({
+      type: 'partial',
+      meetingId: this.meetingId,
+      role: this.role,
+      participantId: this.participantId,
+      text: '[🛑 Continuous recording stopped]',
+      startTime: Date.now(),
+      endTime: Date.now(),
+      timestamp: Date.now()
+    });
   }
 
   private initializeSpeechRecognition(): boolean {
@@ -1551,6 +1647,18 @@ export class AudioStreamer {
       clearTimeout(this.mobileSegmentTimer);
       this.mobileSegmentTimer = null;
       console.log('⏰ Cleared mobile segment timer');
+    }
+
+    // Clear mobile auto-restart timer
+    if (this.mobileAutoRestartTimer) {
+      clearTimeout(this.mobileAutoRestartTimer);
+      this.mobileAutoRestartTimer = null;
+      console.log('⏰ Cleared mobile auto-restart timer');
+    }
+
+    // Stop mobile continuous recording
+    if (this.isMobileDevice() && this.mobileContinuousMode) {
+      this.stopMobileContinuousRecording();
     }
 
     // Stop speech recognition if running

@@ -782,32 +782,37 @@ const AudioCapture = () => {
                     </div>
                     
                     <div className="text-xs text-green-300 space-y-1">
-                      <p>• Tap the microphone button below to capture speech</p>
-                      <p>• Each tap records one phrase or sentence</p>
-                      <p>• Segments auto-save after 10 seconds (like desktop)</p>
-                      <p>• Works with AI question generation like desktop</p>
-                      <p>• Use "Save Segments Now" for immediate saving</p>
+                      <p>• Tap the button below to start CONTINUOUS recording</p>
+                      <p>• Speak naturally - pauses and breaks are handled automatically</p>
+                      <p>• Auto-saves after 10+ seconds of silence</p>
+                      <p>• Auto-generates AI questions after each save</p>
+                      <p>• Tap button again to stop continuous recording</p>
                     </div>
                     
-                    {/* Mobile Microphone Button (based on your To-Do List pattern) */}
+                    {/* Mobile Microphone Button (continuous mode) */}
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         if (audioStreamerRef.current) {
-                          console.log('🎤 Mobile microphone button clicked (To-Do List pattern)');
+                          console.log('🎤 Mobile continuous recording button clicked');
                           const success = audioStreamerRef.current.startMobileSpeechCapture();
                           if (success) {
-                            setStatusMessage('🎤 Listening... Speak clearly into your microphone');
+                            // Check if we're starting or stopping
+                            const isStarting = !(audioStreamerRef.current as any).mobileContinuousMode;
+                            setStatusMessage(isStarting ? 
+                              '🎤 Starting continuous recording... Speak naturally!' : 
+                              '🛑 Stopping continuous recording...'
+                            );
                           } else {
-                            setStatusMessage('❌ Failed to start mobile speech capture');
+                            setStatusMessage('❌ Failed to toggle mobile speech capture');
                           }
                         }
                       }}
                       className="w-full px-6 py-4 bg-blue-500/30 hover:bg-blue-500/40 border border-blue-500/50 rounded-lg text-blue-200 font-medium transition-colors duration-200 flex items-center justify-center gap-3"
                     >
                       <span className="text-2xl">🎤</span>
-                      <span className="text-lg">Tap to Speak</span>
+                      <span className="text-lg">Start/Stop Continuous Recording</span>
                     </motion.button>
                     
                     {/* Manual Save Segments Button for Mobile */}
