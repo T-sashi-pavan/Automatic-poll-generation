@@ -793,19 +793,28 @@ const AudioCapture = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => {
+                      onClick={async () => {
                         if (audioStreamerRef.current) {
                           console.log('🎤 Mobile continuous recording button clicked');
-                          const success = audioStreamerRef.current.startMobileSpeechCapture();
-                          if (success) {
-                            // Check if we're starting or stopping
-                            const isStarting = !(audioStreamerRef.current as any).mobileContinuousMode;
-                            setStatusMessage(isStarting ? 
-                              '🎤 Starting continuous recording... Speak naturally!' : 
-                              '🛑 Stopping continuous recording...'
-                            );
-                          } else {
-                            setStatusMessage('❌ Failed to toggle mobile speech capture');
+                          try {
+                            // Show connecting status
+                            toast.loading('🔗 Connecting to backend...', { id: 'mobile-connect' });
+                            
+                            const success = await audioStreamerRef.current.startMobileSpeechCapture();
+                            if (success) {
+                              // Check if we're starting or stopping
+                              const isStarting = !(audioStreamerRef.current as any).mobileContinuousMode;
+                              toast.success(isStarting ? 
+                                '🎤 Continuous recording started! Speak naturally!' : 
+                                '🛑 Continuous recording stopped!', 
+                                { id: 'mobile-connect' }
+                              );
+                            } else {
+                              toast.error('❌ Failed to toggle mobile speech capture', { id: 'mobile-connect' });
+                            }
+                          } catch (error) {
+                            console.error('❌ Mobile speech capture error:', error);
+                            toast.error('❌ Failed to connect to backend', { id: 'mobile-connect' });
                           }
                         }
                       }}
@@ -822,25 +831,16 @@ const AudioCapture = () => {
                       onClick={async () => {
                         if (audioStreamerRef.current) {
                           console.log('💾 Manual mobile segment save requested');
-                          setStatusMessage('💾 Saving segments manually...');
+                          toast.loading('💾 Saving segments manually...', { id: 'manual-save' });
                           
                           try {
-                            await audioStreamerRef.current.saveTranscriptsToBackend();
-                            setStatusMessage('✅ Mobile segments saved successfully!');
-                            
-                            // Clear message after 3 seconds
-                            setTimeout(() => {
-                              setStatusMessage('');
-                            }, 3000);
+                            // Call public save method
+                            await (audioStreamerRef.current as any).saveTranscriptsToBackend();
+                            toast.success('✅ Mobile segments saved successfully!', { id: 'manual-save' });
                             
                           } catch (error) {
                             console.error('Manual save failed:', error);
-                            setStatusMessage('❌ Failed to save segments');
-                            
-                            // Clear error message after 3 seconds
-                            setTimeout(() => {
-                              setStatusMessage('');
-                            }, 3000);
+                            toast.error('❌ Failed to save segments', { id: 'manual-save' });
                           }
                         }
                       }}

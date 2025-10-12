@@ -203,6 +203,27 @@ export class AudioStreamer {
           if (isFinal) {
             this.transcriptBuffer.push(transcriptMessage);
             console.log(`💾 Mobile final transcript added to buffer: "${transcript.substring(0, 50)}..."`);
+            
+            // CRITICAL: Send final transcripts to WebSocket backend immediately for real-time processing
+            if (this.isConnected && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+              try {
+                const saveMessage: AudioChunkMessage = {
+                  type: 'save_transcripts',
+                  meetingId: this.meetingId,
+                  role: this.role,
+                  participantId: this.participantId,
+                  timestamp: Date.now(),
+                  transcripts: [transcriptMessage] // Send single transcript immediately
+                };
+                
+                this.websocket.send(JSON.stringify(saveMessage));
+                console.log(`📤 Mobile final transcript sent to backend immediately: "${transcript.substring(0, 30)}..."`);
+              } catch (error) {
+                console.error('❌ Failed to send mobile transcript to backend:', error);
+              }
+            } else {
+              console.warn('⚠️ WebSocket not connected - mobile transcript not sent to backend');
+            }
           }
           
           // Send to UI (both interim and final)
@@ -366,10 +387,10 @@ export class AudioStreamer {
   }
 
   /**
-   * Start/Stop mobile speech recognition (continuous mode)
-   * This creates a toggle button for continuous recording
+   * Start/Stop mobile speech recognition (continuous mode) with backend connection
+   * This creates a toggle button for continuous recording with WebSocket integration
    */
-  public startMobileSpeechCapture(): boolean {
+  public async startMobileSpeechCapture(): Promise<boolean> {
     if (!this.isMobileDevice()) {
       console.warn('⚠️ startMobileSpeechCapture called on non-mobile device');
       return false;
@@ -388,26 +409,76 @@ export class AudioStreamer {
       return false;
     }
 
-    if (!this.simpleMobileSpeechRecognition) {
-      console.log('📱 Initializing mobile speech for first use...');
-      const initialized = this.initializeSimpleMobileSpeech();
-      if (!initialized) {
+    try {
+      // STEP 1: Connect to WebSocket backend first (essential for database saving and questions)
+      if (!this.isConnected) {
+        console.log('🔗 Mobile: Connecting to backend for database saving and question generation...');
+        this.callbacks.onStatusChange('connecting');
+        
         this.callbacks.onTranscript({
           type: 'partial',
           meetingId: this.meetingId,
           role: this.role,
           participantId: this.participantId,
-          text: '[❌ Mobile speech recognition not available on this device]',
+          text: '[🔗 Connecting to backend for database saving...]',
           startTime: Date.now(),
           endTime: Date.now(),
           timestamp: Date.now()
         });
-        return false;
-      }
-    }
 
-    try {
-      console.log('🎤 Starting continuous mobile speech capture...');
+        const connected = await this.connectWebSocket();
+        if (!connected) {
+          console.error('❌ Mobile: Failed to connect to backend');
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[❌ Failed to connect to backend - transcripts will not be saved]',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
+          return false;
+        }
+        
+        console.log('✅ Mobile: Backend connected successfully');
+        this.callbacks.onTranscript({
+          type: 'partial',
+          meetingId: this.meetingId,
+          role: this.role,
+          participantId: this.participantId,
+          text: '[✅ Backend connected! Transcripts will be saved and questions generated]',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          timestamp: Date.now()
+        });
+      }
+
+      // STEP 2: Initialize speech recognition
+      if (!this.simpleMobileSpeechRecognition) {
+        console.log('📱 Initializing mobile speech for first use...');
+        const initialized = this.initializeSimpleMobileSpeech();
+        if (!initialized) {
+          this.callbacks.onTranscript({
+            type: 'partial',
+            meetingId: this.meetingId,
+            role: this.role,
+            participantId: this.participantId,
+            text: '[❌ Mobile speech recognition not available on this device]',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            timestamp: Date.now()
+          });
+          return false;
+        }
+      }
+
+      // STEP 3: Start continuous recognition with backend integration
+      console.log('🎤 Starting continuous mobile speech capture with backend integration...');
+      
+      // Update status to recording
+      this.callbacks.onStatusChange('recording');
       
       // Start continuous recognition
       this.simpleMobileSpeechRecognition.start();
@@ -415,13 +486,13 @@ export class AudioStreamer {
       return true;
       
     } catch (error) {
-      console.error('❌ Failed to start mobile speech capture:', error);
+      console.error('❌ Failed to start mobile speech capture with backend:', error);
       this.callbacks.onTranscript({
         type: 'partial',
         meetingId: this.meetingId,
         role: this.role,
         participantId: this.participantId,
-        text: '[❌ Failed to start mobile speech recognition]',
+        text: '[❌ Failed to start mobile speech recognition with backend connection]',
         startTime: Date.now(),
         endTime: Date.now(),
         timestamp: Date.now()
@@ -1540,7 +1611,7 @@ export class AudioStreamer {
     }
   }
 
-  private async saveTranscriptsToBackend(): Promise<void> {
+  public async saveTranscriptsToBackend(): Promise<void> {
     try {
       console.log(`🔍 Starting transcript save process. Buffer has ${this.transcriptBuffer.length} transcripts`);
       
