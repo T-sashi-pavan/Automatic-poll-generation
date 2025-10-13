@@ -771,87 +771,91 @@ const AudioCapture = () => {
                 </motion.button>
               </div>
               
-              {/* Mobile Detection and Notification */}
+              {/* Mobile Mic Button - Clean Design */}
               {isMobileDevice() && (
-                <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 mb-4">
-                  <div className="text-center space-y-3">
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <p className="text-sm text-green-200 font-medium">
-                        📱 Mobile Speech Mode Active (To-Do List Pattern)
-                      </p>
-                    </div>
-                    
-                    <div className="text-xs text-green-300 space-y-1">
-                      <p>• Tap the button below to start CONTINUOUS recording</p>
-                      <p>• Speak naturally - pauses and breaks are handled automatically</p>
-                      <p>• Auto-saves after 10+ seconds of silence</p>
-                      <p>• Auto-generates AI questions after each save</p>
-                      <p>• Tap button again to stop continuous recording</p>
-                    </div>
-                    
-                    {/* Mobile Microphone Button (continuous mode) */}
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={async () => {
-                        if (audioStreamerRef.current) {
-                          console.log('🎤 Mobile continuous recording button clicked');
-                          try {
-                            // Show connecting status
-                            toast.loading('🔗 Connecting to backend...', { id: 'mobile-connect' });
-                            
-                            const success = await audioStreamerRef.current.startMobileSpeechCapture();
-                            if (success) {
-                              // Check if we're starting or stopping
-                              const isStarting = !(audioStreamerRef.current as any).mobileContinuousMode;
-                              toast.success(isStarting ? 
-                                '🎤 Continuous recording started! Speak naturally!' : 
-                                '🛑 Continuous recording stopped!', 
-                                { id: 'mobile-connect' }
-                              );
-                            } else {
-                              toast.error('❌ Failed to toggle mobile speech capture', { id: 'mobile-connect' });
-                            }
-                          } catch (error) {
-                            console.error('❌ Mobile speech capture error:', error);
-                            toast.error('❌ Failed to connect to backend', { id: 'mobile-connect' });
-                          }
-                        }
-                      }}
-                      className="w-full px-6 py-4 bg-blue-500/30 hover:bg-blue-500/40 border border-blue-500/50 rounded-lg text-blue-200 font-medium transition-colors duration-200 flex items-center justify-center gap-3"
-                    >
-                      <span className="text-2xl">🎤</span>
-                      <span className="text-lg">Start/Stop Continuous Recording</span>
-                    </motion.button>
-                    
-                    {/* Manual Save Segments Button for Mobile - Hidden but functional */}
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={async () => {
-                        if (audioStreamerRef.current) {
-                          console.log('💾 Manual mobile segment save requested');
-                          toast.loading('💾 Saving segments manually...', { id: 'manual-save' });
+                <div className="flex flex-col items-center space-y-6 my-8">
+                  {/* Beautiful Mobile Mic Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={async () => {
+                      if (audioStreamerRef.current) {
+                        console.log('🎤 Mobile continuous recording button clicked');
+                        try {
+                          // Show connecting status
+                          toast.loading('🔗 Connecting to backend...', { id: 'mobile-connect' });
                           
-                          try {
-                            // Call public save method
-                            await (audioStreamerRef.current as any).saveTranscriptsToBackend();
-                            toast.success('✅ Mobile segments saved successfully!', { id: 'manual-save' });
-                            
-                          } catch (error) {
-                            console.error('Manual save failed:', error);
-                            toast.error('❌ Failed to save segments', { id: 'manual-save' });
+                          const success = await audioStreamerRef.current.startMobileSpeechCapture();
+                          if (success) {
+                            // Check if we're starting or stopping
+                            const isStarting = !(audioStreamerRef.current as any).mobileContinuousMode;
+                            toast.success(isStarting ? 
+                              '🎤 Continuous recording started! Speak naturally!' : 
+                              '🛑 Continuous recording stopped!', 
+                              { id: 'mobile-connect' }
+                            );
+                          } else {
+                            toast.error('❌ Failed to toggle mobile speech capture', { id: 'mobile-connect' });
                           }
+                        } catch (error) {
+                          console.error('❌ Mobile speech capture error:', error);
+                          toast.error('❌ Failed to connect to backend', { id: 'mobile-connect' });
                         }
+                      }
+                    }}
+                    className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/25 border-2 border-white/20 transition-all duration-300"
+                  >
+                    {/* Mic Icon */}
+                    <Mic className="w-8 h-8 text-white drop-shadow-lg" />
+                    
+                    {/* Recording Pulse Animation */}
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-blue-400"
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0.7, 0, 0.7],
                       }}
-                      className="hidden"
-                    >
-                      <span className="text-lg">💾</span>
-                      <span>Save Segments Now</span>
-                    </motion.button>
-                  </div>
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    />
+                  </motion.button>
+                  
+                  {/* Simple Status Text */}
+                  <p className="text-sm text-gray-300 font-medium">
+                    Tap to Start/Stop Recording
+                  </p>
                 </div>
+              )}
+
+              {/* Manual Save Segments Button for Mobile - Hidden but functional */}
+              {isMobileDevice() && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={async () => {
+                    if (audioStreamerRef.current) {
+                      console.log('💾 Manual mobile segment save requested');
+                      toast.loading('💾 Saving segments manually...', { id: 'manual-save' });
+                      
+                      try {
+                        // Call public save method
+                        await (audioStreamerRef.current as any).saveTranscriptsToBackend();
+                        toast.success('✅ Mobile segments saved successfully!', { id: 'manual-save' });
+                        
+                      } catch (error) {
+                        console.error('Manual save failed:', error);
+                        toast.error('❌ Failed to save segments', { id: 'manual-save' });
+                      }
+                    }
+                  }}
+                  className="hidden"
+                >
+                  <span className="text-lg">💾</span>
+                  <span>Save Segments Now</span>
+                </motion.button>
               )}
 
               <div className={`text-center ${isMobileDevice() ? 'hidden' : ''}`}>
