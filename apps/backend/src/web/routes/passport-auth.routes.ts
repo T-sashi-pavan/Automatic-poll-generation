@@ -118,13 +118,13 @@ function getFrontendUrl(): string {
 
 // Logout route
 router.post('/logout', (req: Request, res: Response) => {
-  req.logout((err) => {
+  req.logout((err: any) => {
     if (err) {
       console.error('Logout error:', err);
       return res.status(500).json({ message: 'Logout failed' });
     }
     
-    req.session.destroy((err) => {
+    (req.session as any).destroy((err: any) => {
       if (err) {
         console.error('Session destroy error:', err);
         return res.status(500).json({ message: 'Session cleanup failed' });

@@ -26,7 +26,6 @@ import saveQuestionsRouter from './web/routes/save_questions';
 import pollConfigRoutes from './web/routes/poll.routes';
 import sessionReportRoutes from './web/routes/sessionReport.routes'; // <-- NEW IMPORT
 import zohoRootRoutes from './web/routes/zoho-root.routes'; // Zoho OAuth root routes
-// import zohoTestRoutes from './web/routes/zoho-test.routes'; // Zoho OAuth test routes
 import { configureGoogleStrategy, configureZohoStrategy } from './config/passport'; // <-- NEW IMPORT
 
 dotenv.config();
@@ -166,7 +165,6 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Zoho OAuth root routes (must be before /api/auth to match Zoho app config)
 app.use('/', zohoRootRoutes);
-// app.use('/api/test', zohoTestRoutes); // Zoho test routes
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
