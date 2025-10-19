@@ -73,6 +73,7 @@ app.use(passport.session());
 const allowedOrigins = [
   'http://localhost:5174',              // Local development frontend
   'http://localhost:3000',              // Alternative local port
+  'https://automatic-poll-generation-frontend.vercel.app', // Explicit production frontend
   process.env.FRONTEND_URL_LOCAL,       // Local frontend URL
   process.env.FRONTEND_URL_PROD,        // Production frontend URL
   process.env.FRONTEND_URL_PRODUCTION,  // Alternative production frontend URL
