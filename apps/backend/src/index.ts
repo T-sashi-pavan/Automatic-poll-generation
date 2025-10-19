@@ -14,7 +14,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO and attach it to the HTTP server
 const io = new Server(server, {
     cors: {
-        origin: process.env.FRONTEND_URL || 'http://localhost:5174',
+        origin: process.env.FRONTEND_URL_LOCAL || 'http://localhost:5174',
         methods: ["GET", "POST"]
     }
 });

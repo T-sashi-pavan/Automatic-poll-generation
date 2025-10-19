@@ -28,13 +28,27 @@ const JoinPollPage: React.FC = () => {
     const [isJoining, setIsJoining] = useState(false);
     const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
     const [error, setError] = useState('');
+    const [authCheckComplete, setAuthCheckComplete] = useState(false);
     
     // Check authentication - students need to be logged in to join polls
+    // Wait a bit for Google OAuth callback to complete authentication
     useEffect(() => {
-        if (!user) {
-            toast.error("Please log in first to join polls.");
-            navigate('/login?redirect=join-poll');
-        }
+        const checkAuth = () => {
+            if (!user) {
+                // Wait a bit longer for Google OAuth authentication to complete
+                setTimeout(() => {
+                    if (!user) {
+                        toast.error("Please log in first to join polls.");
+                        navigate('/login?redirect=join-poll');
+                    }
+                    setAuthCheckComplete(true);
+                }, 2000); // Wait 2 seconds for auth to complete
+            } else {
+                setAuthCheckComplete(true);
+            }
+        };
+        
+        checkAuth();
     }, [user, navigate]);
     
  // --- NEW useEffect TO READ FROM URL ---
@@ -215,6 +229,19 @@ const JoinPollPage: React.FC = () => {
     };
 
     return (
+        <>
+            {!authCheckComplete ? (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="max-w-2xl w-full mx-auto p-4 sm:p-8 text-center"
+                >
+                    <div className="text-white">
+                        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p>Checking authentication...</p>
+                    </div>
+                </motion.div>
+            ) : (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -288,6 +315,8 @@ const JoinPollPage: React.FC = () => {
                 </div>
             </GlassCard>
         </motion.div>
+            )}
+        </>
     );
 }
 

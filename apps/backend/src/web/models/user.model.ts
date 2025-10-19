@@ -31,21 +31,39 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IUser extends Document {
   fullName: string;
   email: string;
-  password: string;
+  password?: string;
   role: "host" | "student"; // <-- Re-added this critical field
   avatar?: string;
   bio?: string;
   passwordReset?: { token?: string; expires?: Date; used?: boolean };
+  googleId?: string;
+  zohoId?: string; // Add Zoho ID field
+  isEmailVerified?: boolean;
 }
 
 export const userSchema = new Schema<IUser>({
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { 
+    type: String, 
+    required: function(this: IUser) {
+      // Password is required only if user doesn't have googleId or zohoId (not OAuth user)
+      return !this.googleId && !this.zohoId;
+    }
+  },
   role: { type: String, enum: ["host", "student"], default: "student" }, // <-- Re-added this
   avatar: { type: String, default: "https://www.gravatar.com/avatar/?d=mp" },
   bio: { type: String, default: "", maxLength: 200 },
-  passwordReset: { /* ... */ },
+  passwordReset: {
+    token: { type: String },
+    expires: { type: Date },
+    used: { type: Boolean }
+  },
+  googleId: { type: String, required: false, index: true },
+  zohoId: { type: String, required: false, index: true }, // Add Zoho ID field
+  isEmailVerified: { type: Boolean, default: false } // Add email verification field
+
+
 });
 
 export const User = mongoose.model<IUser>("User", userSchema);

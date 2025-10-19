@@ -25,6 +25,8 @@ import ChangePassword from './components/student/ChangePassword';
 import GuestPage from './pages/guest/GuestPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 
+import GoogleAuthCallback from './pages/GoogleAuthCallback';
+
 
 // Student dashboard section imports
 import JoinPollPage from './components/student/JoinPollPage';
@@ -51,6 +53,7 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
                 <Route path="/contactUs" element={<ContactUs />} />
                 <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
