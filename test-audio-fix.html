@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recording Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .recording {
+            background: #f44336 !important;
+        }
+        .transcript-area {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 200px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.recording {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        .status.ready {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        .status.error {
+            background: rgba(255, 152, 0, 0.3);
+        }
+        .fix-details {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .improvement {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .device-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Audio Recording Fix Test</h1>
+        <p>Testing the fixes for the "half half recording" issue</p>
+
+        <div class="fix-details">
+            <h3>🔧 Fixes Applied:</h3>
+            <ul>
+                <li class="improvement">✅ Enabled continuous mode for mobile Chrome (was previously disabled)</li>
+                <li class="improvement">✅ Increased restart delay from 100ms to 500ms for mobile devices</li>
+                <li class="improvement">✅ Added restart counter with max limit (10 attempts) to prevent infinite loops</li>
+                <li class="improvement">✅ Reset restart counter on successful speech recognition start</li>
+                <li class="improvement">✅ Better error handling and fallback system</li>
+            </ul>
+        </div>
+
+        <div class="device-info" id="deviceInfo">
+            <strong>Device Detection:</strong> <span id="deviceType">Detecting...</span><br>
+            <strong>User Agent:</strong> <span id="userAgent"></span><br>
+            <strong>Speech API:</strong> <span id="speechAPI">Checking...</span>
+        </div>
+
+        <div class="test-section">
+            <h3>🎤 Speech Recognition Test</h3>
+            <button id="startBtn" onclick="startRecording()">Start Recording</button>
+            <button id="stopBtn" onclick="stopRecording()" disabled>Stop Recording</button>
+            
+            <div class="status ready" id="status">Ready to test - Click Start Recording</div>
+            
+            <div class="transcript-area" id="transcript">
+Transcript will appear here...
+
+Instructions for testing:
+1. Click "Start Recording"
+2. Speak clearly for 30+ seconds
+3. Check if recording is continuous (no "half half" interruptions)
+4. Look for restart messages in the transcript
+5. Verify smooth speech capture without gaps
+
+Expected improvements:
+- No frequent "Speech recognition stopped - restarting..." messages
+- Continuous capture without interruptions
+- Better handling on mobile devices
+- Smoother overall recording experience
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Results</h3>
+            <div id="testResults">
+                <p><strong>Test Status:</strong> <span id="testStatus">Not started</span></p>
+                <p><strong>Restart Count:</strong> <span id="restartCount">0</span></p>
+                <p><strong>Recording Duration:</strong> <span id="duration">0s</span></p>
+                <p><strong>Speech Detected:</strong> <span id="speechDetected">No</span></p>
+                <p><strong>Continuous Mode:</strong> <span id="continuousMode">Unknown</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let recognition = null;
+        let isRecording = false;
+        let startTime = 0;
+        let restartCount = 0;
+        let durationInterval = null;
+
+        // Device detection
+        function detectDevice() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isChrome = /chrome/i.test(userAgent);
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            
+            let deviceType = 'Desktop';
+            if (isMobile) deviceType = 'Mobile';
+            if (isMobile && isChrome) deviceType = 'Mobile Chrome';
+            if (isTouchDevice && !isMobile) deviceType = 'Touch Device';
+            
+            document.getElementById('deviceType').textContent = deviceType;
+            
+            // Check for Speech API
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                document.getElementById('speechAPI').textContent = '✅ Available';
+            } else {
+                document.getElementById('speechAPI').textContent = '❌ Not Available';
+            }
+            
+            return {isMobile, isChrome, deviceType};
+        }
+
+        function isChromeOnMobile() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            return /chrome/i.test(userAgent) && /android|iphone|ipad|ipod|mobile/i.test(userAgent);
+        }
+
+        function updateStatus(message, type = 'ready') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function addToTranscript(message) {
+            const transcript = document.getElementById('transcript');
+            const timestamp = new Date().toLocaleTimeString();
+            transcript.textContent += `\n[${timestamp}] ${message}`;
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        function updateDuration() {
+            if (isRecording && startTime) {
+                const duration = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('duration').textContent = duration + 's';
+            }
+        }
+
+        function startRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                updateStatus('Speech Recognition not supported in this browser', 'error');
+                return;
+            }
+
+            // Reset counters
+            restartCount = 0;
+            document.getElementById('restartCount').textContent = '0';
+            document.getElementById('testStatus').textContent = 'Recording...';
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+
+            // Apply mobile Chrome optimizations (our fix)
+            if (isChromeOnMobile()) {
+                addToTranscript('📱 Mobile Chrome detected - applying optimizations...');
+                // Keep continuous mode enabled (this is our fix!)
+                recognition.continuous = true;
+                document.getElementById('continuousMode').textContent = '✅ Enabled (Fixed!)';
+            } else {
+                document.getElementById('continuousMode').textContent = '✅ Enabled';
+            }
+
+            recognition.onstart = () => {
+                isRecording = true;
+                startTime = Date.now();
+                restartCount = 0; // Reset on successful start (our fix)
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('startBtn').className = '';
+                document.getElementById('stopBtn').className = 'recording';
+                
+                updateStatus('🎙️ Recording... Speak clearly!', 'recording');
+                addToTranscript('🎙️ Speech recognition started successfully!');
+                addToTranscript('✅ Restart counter reset to 0 (Fix applied)');
+                
+                // Start duration counter
+                durationInterval = setInterval(updateDuration, 1000);
+            };
+
+            recognition.onspeechstart = () => {
+                addToTranscript('🗣️ Speech detected!');
+                document.getElementById('speechDetected').textContent = 'Yes';
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    addToTranscript('📝 FINAL: ' + finalTranscript);
+                }
+                if (interimTranscript) {
+                    addToTranscript('⏳ INTERIM: ' + interimTranscript);
+                }
+            };
+
+            recognition.onend = () => {
+                addToTranscript('🔄 Speech recognition ended');
+                
+                // Restart logic with our fixes
+                if (isRecording) {
+                    if (restartCount >= 10) { // Max restart limit (our fix)
+                        addToTranscript('⚠️ Max restart limit reached (10) - stopping to prevent infinite loops');
+                        updateStatus('Max restart limit reached - test completed', 'error');
+                        stopRecording();
+                        return;
+                    }
+                    
+                    // Mobile Chrome gets longer delay (our fix)
+                    const restartDelay = isChromeOnMobile() ? 500 : 100;
+                    
+                    addToTranscript(`🔄 Restarting in ${restartDelay}ms... (attempt ${restartCount + 1}/10)`);
+                    
+                    setTimeout(() => {
+                        if (recognition && isRecording) {
+                            restartCount++;
+                            document.getElementById('restartCount').textContent = restartCount.toString();
+                            addToTranscript(`🔄 Restart attempt ${restartCount} - starting recognition...`);
+                            try {
+                                recognition.start();
+                            } catch (error) {
+                                addToTranscript('❌ Restart failed: ' + error.message);
+                                stopRecording();
+                            }
+                        }
+                    }, restartDelay);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                addToTranscript('❌ Error: ' + event.error);
+                if (event.error === 'aborted' || event.error === 'no-speech') {
+                    // Don't stop for these errors, let restart handle it
+                    return;
+                }
+                updateStatus('Error: ' + event.error, 'error');
+            };
+
+            // Start recording
+            try {
+                addToTranscript('🚀 Initializing speech recognition...');
+                recognition.start();
+            } catch (error) {
+                updateStatus('Failed to start: ' + error.message, 'error');
+                addToTranscript('❌ Failed to start: ' + error.message);
+            }
+        }
+
+        function stopRecording() {
+            if (recognition) {
+                isRecording = false;
+                recognition.stop();
+                recognition = null;
+            }
+            
+            // Clear duration interval
+            if (durationInterval) {
+                clearInterval(durationInterval);
+                durationInterval = null;
+            }
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('startBtn').className = '';
+            document.getElementById('stopBtn').className = '';
+            document.getElementById('testStatus').textContent = 'Completed';
+            
+            updateStatus('Recording stopped - Check results above', 'ready');
+            addToTranscript('🛑 Recording stopped by user');
+            
+            // Show test summary
+            addToTranscript('');
+            addToTranscript('=== TEST SUMMARY ===');
+            addToTranscript(`Total restart attempts: ${restartCount}`);
+            addToTranscript(`Recording duration: ${document.getElementById('duration').textContent}`);
+            addToTranscript(`Speech detected: ${document.getElementById('speechDetected').textContent}`);
+            addToTranscript('');
+            if (restartCount < 5) {
+                addToTranscript('✅ GOOD: Low restart count indicates stable recording');
+            } else if (restartCount < 10) {
+                addToTranscript('⚠️ MODERATE: Some restarts but within acceptable range');
+            } else {
+                addToTranscript('❌ HIGH: Many restarts - may need further optimization');
+            }
+        }
+
+        // Initialize device detection on page load
+        window.onload = function() {
+            const deviceInfo = detectDevice();
+            addToTranscript('Device detection complete: ' + deviceInfo.deviceType);
+            
+            if (deviceInfo.isMobile && deviceInfo.isChrome) {
+                addToTranscript('📱 Mobile Chrome detected - fixes will be applied automatically');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -9,13 +9,15 @@ import {
 } from "lucide-react"
 import DashboardLayout from "../components/DashboardLayout"
 import GlassCard from "../components/GlassCard"
+import MiniAudioStatus from "../components/MiniAudioStatus"
+import TimerBasedQuestionsSection from "../components/TimerBasedQuestionsSection"
 import { useAuth } from "../contexts/AuthContext"
+import { useSessionManagement } from "../hooks/useSessionManagement"
 import { toast } from "react-hot-toast"
 import { useTranscriptCapture } from "../hooks/useTranscriptCapture"
 import { useAutoQuestions } from "../hooks/useAutoQuestions"
 import { LocalTranscriptManager } from "../utils/localTranscripts"
 import { generateQuestionsWithGemini } from "../utils/geminiQuestions"
-import { injectDemoTranscripts } from "../utils/demoTranscripts"
 import { apiService } from "../utils/api"
 import type { QuestionCapability } from "../utils/localTranscripts"
 
@@ -54,7 +56,9 @@ interface QuestionConfig {
 }
 
 const AIQuestionFeed = () => {
-  const { activeRoom, createRoom, destroyRoom, isCreatingRoom, socket } = useAuth();
+  const { activeRoom, createRoom, isCreatingRoom, socket } = useAuth();
+  // Enhanced session management with audio cleanup
+  const { endSessionWithAudioReset } = useSessionManagement();
   const navigate = useNavigate();
   
   // Room creation state
@@ -162,7 +166,7 @@ const AIQuestionFeed = () => {
     meetingId: activeRoom?._id || '',
     enabled: !!activeRoom
   });
-  
+
   // Configuration state
   const [config, setConfig] = useState<QuestionConfig>({
     numQuestions: 5,
@@ -192,9 +196,12 @@ const AIQuestionFeed = () => {
     createRoom(roomName);
   };
 
-  const handleDestroySession = () => {
-    destroyRoom(() => navigate('/host/leaderboard'));
-    setRoomName('');
+  const handleDestroySession = async () => {
+    const success = await endSessionWithAudioReset(() => navigate('/host/leaderboard'));
+    if (success) {
+      setRoomName('');
+      console.log('✅ [AI_QUESTIONS] Session ended successfully with audio reset');
+    }
   };
 
   // Debug function to test socket connection
@@ -576,7 +583,10 @@ const AIQuestionFeed = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">AI Questions</h1>
-              <p className="text-gray-400">Generate intelligent questions from your meeting transcripts</p>
+              <div className="flex items-center gap-3">
+                <p className="text-gray-400">Generate intelligent questions from your meeting transcripts</p>
+                <MiniAudioStatus showText={false} size="md" />
+              </div>
             </div>
           </div>
           
@@ -666,80 +676,188 @@ const AIQuestionFeed = () => {
         {questionSegments.length > 0 && (
           <GlassCard className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Auto-Generated Questions</h2>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    ⚡ Auto-Generated Questions
+                    <span className="text-sm bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
+                      SEGMENT-BASED
+                    </span>
+                  </h2>
                   <p className="text-gray-400">
-                    📘 {getTotalQuestionCount()} questions from {questionSegments.length} segments
-                    {isConnected && <span className="text-green-400 ml-2">• Live</span>}
+                    {isConnected ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        Live generation enabled
+                      </span>
+                    ) : (
+                      <>
+                        📘 {getTotalQuestionCount()} questions from {questionSegments.length} segments
+                        <br />
+                        <span className="text-sm italic">
+                          "Questions generated from individual segment analysis."
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
               
-              <button
-                onClick={handleClearQuestions}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
-                title="Clear all auto-generated questions from UI"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Clear Questions</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleClearQuestions}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+                  title="Clear all auto-generated questions from UI"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Clear</span>
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {questionSegments.map((segment) => (
-                <div key={segment.segmentId} className="bg-black/20 rounded-lg p-4 border border-gray-700/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-white">
-                      Segment {segment.segmentNumber}
-                    </h3>
-                    <span className="text-xs text-gray-400">
-                      {segment.questions.length} questions • {new Date(segment.generatedAt).toLocaleTimeString()}
-                    </span>
+            <div className="space-y-6">
+              {questionSegments.map((segment, segmentIndex) => (
+                <motion.div
+                  key={segment.segmentId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: segmentIndex * 0.1 }}
+                  className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg p-5 border border-green-500/20"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                          Segment {segment.segmentNumber}
+                          <Zap className="w-4 h-4 text-green-400" />
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-400">
+                          <span>📝 {segment.questions.length} questions</span>
+                          <span>📅 {new Date(segment.generatedAt).toLocaleTimeString()}</span>
+                          {isConnected && (
+                            <span className="text-green-400 flex items-center gap-1">
+                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                              Live
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   {segment.summary && (
-                    <p className="text-gray-300 text-sm mb-4 italic">"{segment.summary}"</p>
+                    <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <p className="text-green-300 text-sm italic">"{segment.summary}"</p>
+                    </div>
                   )}
 
-                  <div className="space-y-3">
-                    {segment.questions.map((question) => (
-                      <div key={question.id} className="bg-white/5 rounded-lg p-3 border border-gray-600/30">
+                  <div className="space-y-4">
+                    {segment.questions.map((question, questionIndex) => (
+                      <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: (segmentIndex * 0.1) + (questionIndex * 0.05) }}
+                        className="bg-black/20 rounded-lg p-4 border border-gray-600/30 hover:border-green-500/30 transition-all"
+                      >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">
+                            <div className="flex items-center space-x-2 mb-3">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                question.type === 'multiple_choice' 
+                                  ? 'bg-blue-500/20 text-blue-300'
+                                  : question.type === 'true_false'
+                                  ? 'bg-purple-500/20 text-purple-300'
+                                  : 'bg-orange-500/20 text-orange-300'
+                              }`}>
                                 {question.type.replace('_', ' ').toUpperCase()}
                               </span>
-                              <span className="text-xs bg-gray-600/30 text-gray-300 px-2 py-1 rounded-full">
+                              <span className={`text-xs px-2 py-1 rounded-full bg-gray-600/30 ${
+                                question.difficulty === 'easy' 
+                                  ? 'text-green-400'
+                                  : question.difficulty === 'medium'
+                                  ? 'text-yellow-400'
+                                  : 'text-red-400'
+                              }`}>
                                 {question.difficulty.toUpperCase()}
                               </span>
+                              <span className="text-xs bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
+                                ⚡ AUTO-GEN
+                              </span>
+                              <span className="text-xs bg-blue-600/20 text-blue-300 px-2 py-1 rounded-full">
+                                SEGMENT-BASED
+                              </span>
                             </div>
-                            <p className="text-white font-medium mb-2">{question.questionText}</p>
                             
-                            {question.options && (
-                              <div className="space-y-1">
+                            <p className="text-white font-medium mb-3 text-lg leading-relaxed">
+                              {question.questionText}
+                            </p>
+                            
+                            {question.options && question.options.length > 0 && (
+                              <div className="space-y-2 mb-3">
                                 {question.options.map((option, optIndex) => (
-                                  <div key={optIndex} className="text-sm text-gray-300 flex items-center space-x-2">
-                                    <span className="w-6 h-6 bg-gray-700 rounded-full flex items-center justify-center text-xs">
-                                      {String.fromCharCode(65 + optIndex)}
-                                    </span>
-                                    <span>{option}</span>
-                                    {question.correctIndex === optIndex && (
-                                      <CheckCircle className="w-4 h-4 text-green-400" />
-                                    )}
+                                  <div 
+                                    key={optIndex} 
+                                    className={`p-3 rounded-lg border transition-all ${
+                                      question.correctIndex === optIndex 
+                                        ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50'
+                                    }`}
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                                        question.correctIndex === optIndex 
+                                          ? 'bg-green-500 text-white'
+                                          : 'bg-gray-700 text-gray-300'
+                                      }`}>
+                                        {String.fromCharCode(65 + optIndex)}
+                                      </span>
+                                      <span className="flex-1">{option}</span>
+                                      {question.correctIndex === optIndex && (
+                                        <CheckCircle className="w-4 h-4 text-green-400" />
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {question.type === 'true_false' && (
+                              <div className="flex space-x-4 mb-3">
+                                {['True', 'False'].map((option, optIndex) => (
+                                  <div 
+                                    key={option}
+                                    className={`p-3 rounded-lg border flex-1 text-center transition-all ${
+                                      (question.correctAnswer === 'true' && option === 'True') ||
+                                      (question.correctAnswer === 'false' && option === 'False') ||
+                                      (question.correctIndex === optIndex)
+                                        ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-300'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-center space-x-2">
+                                      <span>{option}</span>
+                                      {((question.correctAnswer === 'true' && option === 'True') ||
+                                        (question.correctAnswer === 'false' && option === 'False') ||
+                                        (question.correctIndex === optIndex)) && (
+                                        <CheckCircle className="w-4 h-4 text-green-400" />
+                                      )}
+                                    </div>
                                   </div>
                                 ))}
                               </div>
                             )}
                             
                             {question.explanation && (
-                              <div className="mt-2 p-2 bg-blue-500/10 rounded border-l-2 border-blue-500">
+                              <div className="p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded border-l-4 border-green-500">
                                 <p className="text-xs text-gray-300">
-                                  <strong>Explanation:</strong> {question.explanation}
+                                  <strong className="text-green-400">💡 Explanation:</strong> {question.explanation}
                                 </p>
                               </div>
                             )}
@@ -747,20 +865,26 @@ const AIQuestionFeed = () => {
                           
                           <button
                             onClick={() => launchQuestion(question)}
-                            className="ml-4 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center space-x-2 transition-colors text-sm"
+                            className="ml-4 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg flex items-center space-x-2 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                           >
                             <Play className="w-4 h-4" />
                             <span>Launch</span>
                           </button>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </GlassCard>
         )}
+
+        {/* Timer-Based Questions Section - Enhanced Creative Questions */}
+        <TimerBasedQuestionsSection 
+          roomId={activeRoom?._id || ''}
+          onLaunchQuestion={launchQuestion}
+        />
 
         {/* Progress Steps */}
         <div className="flex items-center space-x-8 mb-8">

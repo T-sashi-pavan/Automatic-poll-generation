@@ -23,12 +23,12 @@ async function checkLatestTranscripts() {
       const roleLabel = transcript.role === 'host' ? 'host' : 
                        transcript.role === 'guest' ? 'cohost' : 'participant';
       
-      console.log(\`\\n[\${i + 1}] \${new Date(transcript.timestamp).toLocaleTimeString()}\`);
-      console.log(\`    \${roleLabel}: "\${transcript.text}"\`);
-      console.log(\`    Meeting: \${transcript.meetingId}\`);
-      console.log(\`    Participant: \${transcript.participantId}\`);
-      console.log(\`    Confidence: \${transcript.confidence}\`);
-      console.log(\`    Final: \${transcript.isFinal}\`);
+      console.log(`\n[${i + 1}] ${new Date(transcript.timestamp).toLocaleTimeString()}`);
+      console.log(`    ${roleLabel}: "${transcript.text}"`);
+      console.log(`    Meeting: ${transcript.meetingId}`);
+      console.log(`    Participant: ${transcript.participantId}`);
+      console.log(`    Confidence: ${transcript.confidence}`);
+      console.log(`    Final: ${transcript.isFinal}`);
     });
     
     // Count by role
@@ -36,17 +36,17 @@ async function checkLatestTranscripts() {
     const guestCount = await audiosCollection.countDocuments({ role: 'guest' });
     const participantCount = await audiosCollection.countDocuments({ role: 'participant' });
     
-    console.log('\\n📈 Transcript counts by role:');
-    console.log(\`   Host transcripts: \${hostCount}\`);
-    console.log(\`   Guest (cohost) transcripts: \${guestCount}\`);
-    console.log(\`   Participant transcripts: \${participantCount}\`);
-    console.log(\`   Total: \${hostCount + guestCount + participantCount}\`);
+    console.log('\n📈 Transcript counts by role:');
+    console.log(`   Host transcripts: ${hostCount}`);
+    console.log(`   Guest (cohost) transcripts: ${guestCount}`);
+    console.log(`   Participant transcripts: ${participantCount}`);
+    console.log(`   Total: ${hostCount + guestCount + participantCount}`);
     
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {
     await client.close();
-    console.log('\\n🔌 MongoDB connection closed');
+    console.log('\n🔌 MongoDB connection closed');
   }
 }
 
