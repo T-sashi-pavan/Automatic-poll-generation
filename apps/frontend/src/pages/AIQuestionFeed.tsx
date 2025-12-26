@@ -5,12 +5,13 @@ import {
   Edit3, Settings, Brain, Loader, 
   Plus, Send, FileText,
   BarChart3, CheckCircle, Zap, Trash2,
-  Play
+  Play, ChevronLeft, ChevronRight
 } from "lucide-react"
 import DashboardLayout from "../components/DashboardLayout"
 import GlassCard from "../components/GlassCard"
 import MiniAudioStatus from "../components/MiniAudioStatus"
 import TimerBasedQuestionsSection from "../components/TimerBasedQuestionsSection"
+import RAGQuestionsSection from "../components/RAGQuestionsSection"
 import { useAuth } from "../contexts/AuthContext"
 import { useSessionManagement } from "../hooks/useSessionManagement"
 import { toast } from "react-hot-toast"
@@ -155,6 +156,10 @@ const AIQuestionFeed = () => {
   
   const [questionCapability, setQuestionCapability] = useState<QuestionCapability | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestionSet | null>(null);
+  
+  // Slider state for segment-based questions
+  const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   
   // Auto-generated questions from segments
   const { 
@@ -670,7 +675,7 @@ const AIQuestionFeed = () => {
           )}
         </GlassCard>
 
-        {/* Auto-Generated Questions Section - Mobile Responsive */}
+        {/* Auto-Generated Questions Section - Mobile Responsive with Slider */}
         {questionSegments.length > 0 && (
           <GlassCard className="p-4 sm:p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 sm:mb-6 gap-4">
@@ -680,7 +685,7 @@ const AIQuestionFeed = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex flex-col sm:flex-row sm:items-center gap-2">
-                    ⚡ Auto-Generated Questions
+                    ⚡ Gemini-Based Questions
                     <span className="text-xs sm:text-sm bg-green-500/20 text-green-300 px-2 py-1 rounded-full">
                       SEGMENT-BASED
                     </span>
@@ -716,13 +721,15 @@ const AIQuestionFeed = () => {
               </div>
             </div>
 
-            <div className="space-y-4 sm:space-y-6">
-              {questionSegments.map((segment, segmentIndex) => (
+            {/* Current Segment Display */}
+            <div className="mb-6">
+              {questionSegments[currentSegmentIndex] && (
                 <motion.div
-                  key={segment.segmentId}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: segmentIndex * 0.1 }}
+                  key={questionSegments[currentSegmentIndex].segmentId}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
                   className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg p-3 sm:p-5 border border-green-500/20"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-3">
@@ -731,13 +738,45 @@ const AIQuestionFeed = () => {
                         <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
-                          Segment {segment.segmentNumber}
-                          <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
-                        </h3>
+                        {/* Segment Navigation inline with title */}
+                        <div className="flex items-center gap-2 mb-1">
+                          {questionSegments.length > 1 && (
+                            <button
+                              onClick={() => {
+                                setCurrentSegmentIndex(Math.max(0, currentSegmentIndex - 1));
+                                setCurrentQuestionIndex(0);
+                              }}
+                              disabled={currentSegmentIndex === 0}
+                              className="p-1 bg-green-600/80 hover:bg-green-600 disabled:bg-gray-700/50 disabled:cursor-not-allowed rounded transition-all disabled:opacity-50"
+                              title="Previous segment"
+                            >
+                              <ChevronLeft className="w-4 h-4 text-white" />
+                            </button>
+                          )}
+                          <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+                            Segment {questionSegments[currentSegmentIndex].segmentNumber}
+                            <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                          </h3>
+                          {questionSegments.length > 1 && (
+                            <button
+                              onClick={() => {
+                                setCurrentSegmentIndex(Math.min(questionSegments.length - 1, currentSegmentIndex + 1));
+                                setCurrentQuestionIndex(0);
+                              }}
+                              disabled={currentSegmentIndex === questionSegments.length - 1}
+                              className="p-1 bg-green-600/80 hover:bg-green-600 disabled:bg-gray-700/50 disabled:cursor-not-allowed rounded transition-all disabled:opacity-50"
+                              title="Next segment"
+                            >
+                              <ChevronRight className="w-4 h-4 text-white" />
+                            </button>
+                          )}
+                        </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-400">
-                          <span>📝 {segment.questions.length} questions</span>
-                          <span>📅 {new Date(segment.generatedAt).toLocaleTimeString()}</span>
+                          <span>📝 {questionSegments[currentSegmentIndex].questions.length} questions</span>
+                          <span>📅 {new Date(questionSegments[currentSegmentIndex].generatedAt).toLocaleTimeString()}</span>
+                          {questionSegments.length > 1 && (
+                            <span className="text-green-300">Segment {currentSegmentIndex + 1} of {questionSegments.length}</span>
+                          )}
                           {isConnected && (
                             <span className="text-green-400 flex items-center gap-1">
                               <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
@@ -749,75 +788,97 @@ const AIQuestionFeed = () => {
                     </div>
                   </div>
                   
-                  {segment.summary && (
+                  {questionSegments[currentSegmentIndex].summary && (
                     <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                      <p className="text-green-300 text-xs sm:text-sm italic">"{segment.summary}"</p>
+                      <p className="text-green-300 text-xs sm:text-sm italic">"{questionSegments[currentSegmentIndex].summary}"</p>
                     </div>
                   )}
 
-                  <div className="space-y-3 sm:space-y-4">
-                    {segment.questions.map((question, questionIndex) => (
+                  {/* Question Slider within Segment */}
+                  <div className="relative">
+                    {questionSegments[currentSegmentIndex].questions.length > 1 && (
+                      <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 flex justify-between items-center pointer-events-none z-10">
+                        <button
+                          onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+                          disabled={currentQuestionIndex === 0}
+                          className="pointer-events-auto p-2 bg-emerald-600/80 hover:bg-emerald-600 disabled:bg-gray-700/50 disabled:cursor-not-allowed rounded-full shadow-lg transition-all transform hover:scale-110 disabled:opacity-50"
+                        >
+                          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                        </button>
+                        <button
+                          onClick={() => setCurrentQuestionIndex(Math.min(questionSegments[currentSegmentIndex].questions.length - 1, currentQuestionIndex + 1))}
+                          disabled={currentQuestionIndex === questionSegments[currentSegmentIndex].questions.length - 1}
+                          className="pointer-events-auto p-2 bg-emerald-600/80 hover:bg-emerald-600 disabled:bg-gray-700/50 disabled:cursor-not-allowed rounded-full shadow-lg transition-all transform hover:scale-110 disabled:opacity-50"
+                        >
+                          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Current Question Display */}
+                    {questionSegments[currentSegmentIndex].questions[currentQuestionIndex] && (
                       <motion.div
-                        key={question.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: (segmentIndex * 0.1) + (questionIndex * 0.05) }}
-                        className="bg-black/20 rounded-lg p-3 sm:p-4 border border-gray-600/30 hover:border-green-500/30 transition-all"
+                        key={questionSegments[currentSegmentIndex].questions[currentQuestionIndex].id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="bg-black/20 rounded-lg p-3 sm:p-4 border border-gray-600/30 hover:border-green-500/30 transition-all min-h-[300px] sm:min-h-[350px]"
                       >
-                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                        <div className="flex flex-col gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-2 sm:mb-3">
                               <span className={`text-xs px-2 py-1 rounded-full ${
-                                question.type === 'multiple_choice' 
+                                questionSegments[currentSegmentIndex].questions[currentQuestionIndex].type === 'multiple_choice' 
                                   ? 'bg-blue-500/20 text-blue-300'
-                                  : question.type === 'true_false'
+                                  : questionSegments[currentSegmentIndex].questions[currentQuestionIndex].type === 'true_false'
                                   ? 'bg-purple-500/20 text-purple-300'
                                   : 'bg-orange-500/20 text-orange-300'
                               }`}>
-                                {question.type.replace('_', ' ').toUpperCase()}
+                                {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].type.replace('_', ' ').toUpperCase()}
                               </span>
                               <span className={`text-xs px-2 py-1 rounded-full bg-gray-600/30 ${
-                                question.difficulty === 'easy' 
+                                questionSegments[currentSegmentIndex].questions[currentQuestionIndex].difficulty === 'easy' 
                                   ? 'text-green-400'
-                                  : question.difficulty === 'medium'
+                                  : questionSegments[currentSegmentIndex].questions[currentQuestionIndex].difficulty === 'medium'
                                   ? 'text-yellow-400'
                                   : 'text-red-400'
                               }`}>
-                                {question.difficulty.toUpperCase()}
+                                {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].difficulty.toUpperCase()}
                               </span>
                               <span className="text-xs bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
                                 ⚡ AUTO-GEN
                               </span>
-                              <span className="text-xs bg-blue-600/20 text-blue-300 px-2 py-1 rounded-full">
-                                SEGMENT-BASED
+                              <span className="text-xs text-gray-400">
+                                Question {currentQuestionIndex + 1} of {questionSegments[currentSegmentIndex].questions.length}
                               </span>
                             </div>
                             
                             <p className="text-white font-medium mb-2 sm:mb-3 text-sm sm:text-lg leading-relaxed">
-                              {question.questionText}
+                              {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].questionText}
                             </p>
                             
-                            {question.options && question.options.length > 0 && (
+                            {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].options && questionSegments[currentSegmentIndex].questions[currentQuestionIndex].options!.length > 0 && (
                               <div className="space-y-2 mb-2 sm:mb-3">
-                                {question.options.map((option, optIndex) => (
+                                {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].options!.map((option, optIndex) => (
                                   <div 
                                     key={optIndex} 
                                     className={`p-2 sm:p-3 rounded-lg border transition-all ${
-                                      question.correctIndex === optIndex 
+                                      questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctIndex === optIndex 
                                         ? 'bg-green-500/20 border-green-500/50 text-green-300'
                                         : 'bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50'
                                     }`}
                                   >
                                     <div className="flex items-center space-x-2 sm:space-x-3">
                                       <span className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 ${
-                                        question.correctIndex === optIndex 
+                                        questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctIndex === optIndex 
                                           ? 'bg-green-500 text-white'
                                           : 'bg-gray-700 text-gray-300'
                                       }`}>
                                         {String.fromCharCode(65 + optIndex)}
                                       </span>
                                       <span className="flex-1 text-sm sm:text-base">{option}</span>
-                                      {question.correctIndex === optIndex && (
+                                      {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctIndex === optIndex && (
                                         <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 flex-shrink-0" />
                                       )}
                                     </div>
@@ -826,24 +887,24 @@ const AIQuestionFeed = () => {
                               </div>
                             )}
                             
-                            {question.type === 'true_false' && (
+                            {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].type === 'true_false' && (
                               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-2 sm:mb-3">
                                 {['True', 'False'].map((option, optIndex) => (
                                   <div 
                                     key={option}
                                     className={`p-2 sm:p-3 rounded-lg border flex-1 text-center transition-all ${
-                                      (question.correctAnswer === 'true' && option === 'True') ||
-                                      (question.correctAnswer === 'false' && option === 'False') ||
-                                      (question.correctIndex === optIndex)
+                                      (questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctAnswer === 'true' && option === 'True') ||
+                                      (questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctAnswer === 'false' && option === 'False') ||
+                                      (questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctIndex === optIndex)
                                         ? 'bg-green-500/20 border-green-500/50 text-green-300'
                                         : 'bg-gray-800/50 border-gray-700 text-gray-300'
                                     }`}
                                   >
                                     <div className="flex items-center justify-center space-x-2">
                                       <span className="text-sm sm:text-base">{option}</span>
-                                      {((question.correctAnswer === 'true' && option === 'True') ||
-                                        (question.correctAnswer === 'false' && option === 'False') ||
-                                        (question.correctIndex === optIndex)) && (
+                                      {((questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctAnswer === 'true' && option === 'True') ||
+                                        (questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctAnswer === 'false' && option === 'False') ||
+                                        (questionSegments[currentSegmentIndex].questions[currentQuestionIndex].correctIndex === optIndex)) && (
                                         <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
                                       )}
                                     </div>
@@ -852,34 +913,61 @@ const AIQuestionFeed = () => {
                               </div>
                             )}
                             
-                            {question.explanation && (
+                            {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].explanation && (
                               <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded border-l-4 border-green-500">
                                 <p className="text-xs sm:text-sm text-gray-300">
-                                  <strong className="text-green-400">💡 Explanation:</strong> {question.explanation}
+                                  <strong className="text-green-400">💡 Explanation:</strong> {questionSegments[currentSegmentIndex].questions[currentQuestionIndex].explanation}
                                 </p>
                               </div>
                             )}
                           </div>
                           
                           <button
-                            onClick={() => launchQuestion(question)}
-                            className="ml-0 lg:ml-4 mt-3 lg:mt-0 w-full lg:w-auto px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg flex items-center justify-center space-x-1 sm:space-x-2 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
+                            onClick={() => launchQuestion(questionSegments[currentSegmentIndex].questions[currentQuestionIndex])}
+                            className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg flex items-center justify-center space-x-1 sm:space-x-2 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base"
                           >
                             <Play className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span>Launch</span>
+                            <span>Launch Question</span>
                           </button>
                         </div>
                       </motion.div>
-                    ))}
+                    )}
                   </div>
                 </motion.div>
-              ))}
+              )}
             </div>
+
+            {/* Pagination Dots for Segments */}
+            {questionSegments.length > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                {questionSegments.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setCurrentSegmentIndex(index);
+                      setCurrentQuestionIndex(0);
+                    }}
+                    className={`h-2 rounded-full transition-all ${
+                      index === currentSegmentIndex 
+                        ? 'w-8 bg-green-500' 
+                        : 'w-2 bg-gray-500 hover:bg-gray-400'
+                    }`}
+                    title={`Go to segment ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </GlassCard>
         )}
 
         {/* Timer-Based Questions Section - Enhanced Creative Questions */}
         <TimerBasedQuestionsSection 
+          roomId={activeRoom?._id || ''}
+          onLaunchQuestion={launchQuestion}
+        />
+
+        {/* RAG-Based Questions Section - Groq + Cohere AI Generated Questions */}
+        <RAGQuestionsSection 
           roomId={activeRoom?._id || ''}
           onLaunchQuestion={launchQuestion}
         />

@@ -29,6 +29,11 @@ import pollConfigRoutes from './web/routes/poll.routes';
 import sessionReportRoutes from './web/routes/sessionReport.routes'; // <-- NEW IMPORT
 import zohoRootRoutes from './web/routes/zoho-root.routes'; // Zoho OAuth root routes
 import { configureGoogleStrategy, configureZohoStrategy } from './config/passport'; // <-- NEW IMPORT
+import achievementsRoutes from './web/routes/achievements.routes'; // <-- ACHIEVEMENTS IMPORT
+import notificationRoutes from './routes/notifications'; // <-- NOTIFICATIONS IMPORT
+import aiProvidersRoutes from './routes/ai-providers'; // <-- AI PROVIDERS IMPORT
+import ollamaQuestionsRoutes from './routes/ollama-questions'; // <-- OLLAMA QUESTIONS IMPORT
+import ragQuestionsRoutes from './routes/rag-questions'; // <-- RAG QUESTIONS IMPORT (Groq + Cohere)
 
 dotenv.config();
 connectDB();
@@ -180,6 +185,12 @@ app.use('/api/segments', segmentsRoutes); // Transcript segments
 app.use('/api/questions', questionsRoutes); // Timer-based questions
 app.use('/api/timer-transcripts', timerTranscriptsRoutes); // Timer-based transcript storage
 app.use('/api/session-reports', sessionReportRoutes); // <-- NEW ROUTE
+app.use('/api/achievements', achievementsRoutes); // <-- ACHIEVEMENTS ROUTE
+app.use('/api/notifications', notificationRoutes); // <-- NOTIFICATIONS ROUTE
+app.use('/api/ai-providers', aiProvidersRoutes); // <-- AI PROVIDERS ROUTE
+app.use('/api/ollama-questions', ollamaQuestionsRoutes); // <-- OLLAMA QUESTIONS ROUTE
+app.use('/api/rag-questions', ragQuestionsRoutes); // <-- RAG QUESTIONS ROUTE (Groq + Cohere)
+
 app.use('/api/stats', statsRoutes); // <-- host/dashboard stats
 
 app.use(errorHandler);

@@ -1055,13 +1055,25 @@ export const GlobalAudioProvider: React.FC<GlobalAudioProviderProps> = ({ childr
         const questionToast = toast.loading('🤖 Generating questions from timer transcript...');
         
         try {
-          const questionsResponse = await apiService.generateTimerQuestions(response.data.data.id);
-          console.log('✅ [GlobalAudio] Timer questions generated:', questionsResponse.data);
+          // Use Gemini as default provider (fast and reliable), Ollama is optional
+          const selectedProvider = localStorage.getItem('selectedAIProvider') as 'gemini' | 'ollama' || 'gemini';
+          
+          console.log(`🤖 [GlobalAudio] Using ${selectedProvider.toUpperCase()} for timer questions`);
+          
+          const questionsResponse = await apiService.generateTimerQuestions(
+            response.data.data.id, 
+            selectedProvider,
+            5 // Default question count
+          );
+          console.log(`✅ [GlobalAudio] Timer questions generated using ${selectedProvider.toUpperCase()}:`, questionsResponse.data);
           
           // Validate the response has questions
           const questions = questionsResponse.data?.data?.questions;
+          const aiProvider = questionsResponse.data?.data?.aiProvider || selectedProvider;
+          const providerLabel = questionsResponse.data?.data?.providerLabel;
+          
           if (questions && Array.isArray(questions) && questions.length > 0) {
-            console.log(`✅ [GlobalAudio] Successfully generated ${questions.length} questions`);
+            console.log(`✅ [GlobalAudio] Successfully generated ${questions.length} questions using ${aiProvider.toUpperCase()}`);
             
             // Update timer state to completed with questions generated
             dispatch({ 
@@ -1072,8 +1084,8 @@ export const GlobalAudioProvider: React.FC<GlobalAudioProviderProps> = ({ childr
               } 
             });
             
-            // Show success notification for questions
-            toast.success(`🎯 Questions generated! Created ${questions.length} questions from timer session`, {
+            // Show success notification with provider info
+            toast.success(`${providerLabel || `🎯 Questions generated using ${aiProvider.toUpperCase()}!`} Created ${questions.length} questions from timer session`, {
               id: questionToast,
               duration: 5000
             });
@@ -1089,6 +1101,77 @@ export const GlobalAudioProvider: React.FC<GlobalAudioProviderProps> = ({ childr
                 }
               }));
             }
+            
+            // Also generate RAG-based questions (separate category) - Run in parallel
+            // Start generation immediately (returns 202 status)
+            console.log('🚀 [GlobalAudio] Starting RAG question generation in background...');
+            const ragToast = toast.loading('🚀 Generating RAG questions (Groq + Cohere)...');
+            
+            // Start generation (fire-and-forget, returns immediately)
+            apiService.generateRAGTimerQuestions({
+              transcriptText: response.data.data.combinedTranscript,
+              transcriptId: response.data.data.id,
+              sessionId: state.timerState.sessionId,
+              roomId: activeRoom?._id || '',
+              hostId: user?.id || 'unknown',
+              questionCount: 5
+            }).then(ragResponse => {
+              console.log('🚀 [GlobalAudio] RAG generation started:', ragResponse.data);
+              
+              // Poll for questions every 5 seconds for up to 30 seconds (RAG is fast!)
+              let pollAttempts = 0;
+              const maxAttempts = 6; // 30 seconds / 5 seconds = 6 attempts
+              
+              const pollInterval = setInterval(async () => {
+                pollAttempts++;
+                console.log(`🔍 [GlobalAudio] Polling for RAG questions (attempt ${pollAttempts}/${maxAttempts})...`);
+                
+                try {
+                  const questionsResponse = await apiService.getRAGTimerQuestionsByRoom(activeRoom?._id || '');
+                  const questions = questionsResponse.data?.data?.questions || [];
+                  
+                  // Check if we have questions for this session
+                  const sessionQuestions = questions.filter((q: any) => 
+                    q.createdAt && new Date(q.createdAt).getTime() > Date.now() - 60000 // Last 1 minute
+                  );
+                  
+                  if (sessionQuestions.length > 0) {
+                    clearInterval(pollInterval);
+                    const avgTime = (sessionQuestions.reduce((sum: number, q: any) => sum + (q.generationTime || 0), 0) / sessionQuestions.length / 1000).toFixed(1);
+                    console.log(`✅ [GlobalAudio] Found ${sessionQuestions.length} RAG questions after ${pollAttempts * 5} seconds (avg: ${avgTime}s per question)`);
+                    toast.success(`🚀 Generated ${sessionQuestions.length} RAG questions in ${avgTime}s!`, {
+                      id: ragToast,
+                      duration: 5000
+                    });
+                    
+                    // Emit event for RAG questions section to refresh
+                    window.dispatchEvent(new CustomEvent('ragQuestionsGenerated', {
+                      detail: {
+                        questions: sessionQuestions,
+                        transcriptId: response.data.data.id,
+                        sessionId: state.timerState.sessionId
+                      }
+                    }));
+                  } else if (pollAttempts >= maxAttempts) {
+                    clearInterval(pollInterval);
+                    console.warn('⚠️ [GlobalAudio] RAG generation exceeded 30 seconds');
+                    toast.error('⚠️ RAG generation taking longer than expected. Check AI Questions page.', {
+                      id: ragToast,
+                      duration: 6000
+                    });
+                  }
+                } catch (pollError) {
+                  console.error('❌ [GlobalAudio] Error polling for RAG questions:', pollError);
+                }
+              }, 5000); // Poll every 5 seconds
+              
+            }).catch(ragError => {
+              console.error('❌ [GlobalAudio] Failed to start RAG generation:', ragError);
+              toast.error('⚠️ Could not start RAG question generation.', {
+                id: ragToast,
+                duration: 4000
+              });
+            });
           } else {
             console.warn('⚠️ [GlobalAudio] Question generation returned empty or invalid response:', questionsResponse.data);
             throw new Error('No questions generated from transcript');

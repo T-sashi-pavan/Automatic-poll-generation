@@ -19,7 +19,8 @@ import AIQuestionFeed from './pages/AIQuestionFeed';
 import Participants from './pages/Participants';
 import Leaderboard from './pages/Leaderboard';
 import Reports from './pages/Reports';
-import Settings from './pages/Settings';
+// import Settings from './pages/Settings';
+import HostProfilePage from './pages/HostProfilePage';
 import HomePage from './pages/HomePage';
 import CreateManualPoll from './pages/CreateManualPoll';
 import CreatePollPage from './pages/CreatePollPage';
@@ -35,9 +36,11 @@ import PollQuestionsPage from './components/student/PollQuestionsPage';
 import StudentProfilePage from './components/student/StudentProfilePage';
 import AchievementPage from './components/student/AchievementPage';
 import NotificationPage from './components/student/NotificationPage';
-import SettingsStudent from './components/student/Settings';
+// import SettingsStudent from './components/student/Settings';
 import StudentLeaderboard from './components/student/StudentLeaderboard';
 import DashboardHomePage from './components/student/DashboardHomePage';
+import { NotificationProvider } from './contexts/NotificationContext';
+
 
 function App() {
   return (
@@ -45,6 +48,9 @@ function App() {
       <AuthProvider>
         <GlobalAudioProvider>
             <LoadingProvider>
+                        <NotificationProvider>
+
+
               <Router>
                 <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
                   <LoadingScreen />
@@ -92,8 +98,10 @@ function App() {
                   <Route path="/host/reports" element={
                       <Reports />
                   } />
-                  <Route path="/host/settings" element={
-                      <Settings />
+                  {/* <Route path="/host/settings" element={
+                      <Settings /> */}
+                       <Route path="/host/profile" element={
+                    <HostProfilePage />
                   } />
                   <Route path="/guest" element={
                     <GuestPage />
@@ -110,7 +118,7 @@ function App() {
           <Route path="profile" element={<StudentProfilePage />} />
           <Route path="achievements" element={<AchievementPage />} />
           <Route path="notifications" element={<NotificationPage />} />
-          <Route path="settings" element={<SettingsStudent />} />
+          {/* <Route path="settings" element={<SettingsStudent />} /> */}
           <Route path="leaderboard" element={<StudentLeaderboard />} />
           {/* <Route path="change-password" element={<ChangePassword />} />
           <Route path="active-sessions" element={<ActiveSessions />} /> */}
@@ -118,6 +126,9 @@ function App() {
       </Routes>
                 </div>
               </Router>
+                        </NotificationProvider>
+
+
             </LoadingProvider>
         </GlobalAudioProvider>
       </AuthProvider>

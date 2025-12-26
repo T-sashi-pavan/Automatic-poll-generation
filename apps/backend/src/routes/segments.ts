@@ -61,6 +61,8 @@ router.post('/save', asyncHandler(async (req: Request, res: Response) => {
     setImmediate(async () => {
       try {
         console.log(`🔄 [AUTO-QUESTIONS] Starting automatic question generation for segment ${segmentNumber}`);
+        
+        // 1. Generate Gemini questions (existing)
         const serviceManager = ServiceManager.getInstance();
         console.log(`🔧 [AUTO-QUESTIONS] ServiceManager retrieved successfully`);
         
@@ -78,7 +80,26 @@ router.post('/save', asyncHandler(async (req: Request, res: Response) => {
           meetingId
         );
         
-        console.log(`✅ [AUTO-QUESTIONS] Question generation completed for segment ${segmentNumber}`);
+        console.log(`✅ [AUTO-QUESTIONS] Gemini question generation completed for segment ${segmentNumber}`);
+        
+        // 2. Generate RAG questions (new - parallel generation)
+        console.log(`🚀 [RAG-AUTO] Starting RAG question generation for segment ${segmentNumber}`);
+        const ragService = require('../services/ragService').default;
+        
+        ragService.generateSegmentQuestions({
+          transcriptText: transcriptText.trim(),
+          transcriptId: newSegment._id.toString(),
+          segmentId: newSegment._id.toString(),
+          sessionId: meetingId,
+          roomId: req.body.roomId || meetingId, // Use roomId if provided, otherwise meetingId
+          hostId: hostmail,
+          questionCount: 5
+        }).then((ragQuestions: any) => {
+          console.log(`✅ [RAG-AUTO] Generated ${ragQuestions.length} RAG questions for segment ${segmentNumber}`);
+        }).catch((ragError: any) => {
+          console.error(`❌ [RAG-AUTO] Failed to generate RAG questions:`, ragError);
+        });
+        
       } catch (error) {
         console.error(`❌ [AUTO-QUESTIONS] Failed to generate questions for segment ${segmentNumber}:`, error);
         console.error(`❌ [AUTO-QUESTIONS] Error details:`, {

@@ -49,11 +49,11 @@ const TimerQuestionSchema = new Schema<ITimerQuestion>({
     type: String,
     required: true,
     minlength: 10,
-    maxlength: 500
+    maxlength: 1000  // Increased from 500 to allow longer questions
   },
   options: [{
     type: String,
-    maxlength: 200
+    maxlength: 500  // Increased from 200 to allow longer options
   }],
   correctAnswer: {
     type: String,
@@ -63,7 +63,7 @@ const TimerQuestionSchema = new Schema<ITimerQuestion>({
   explanation: {
     type: String,
     required: true,
-    maxlength: 1000
+    maxlength: 2000  // Increased from 1000 for detailed explanations
   },
   isTimerBased: {
     type: Boolean,

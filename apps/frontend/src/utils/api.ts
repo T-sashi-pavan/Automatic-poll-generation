@@ -22,6 +22,7 @@ const refreshToken = async () => {
     localStorage.setItem('token', token);
     return token;
   } catch (error) {
+    
     // Clear all tokens if refresh fails
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
@@ -183,6 +184,8 @@ export const apiService = {
 
   uploadAvatar: (formData: FormData) =>
     api.post('/users/profile/avatar', formData),
+  deleteAvatar: () =>
+    api.delete('/users/profile/avatar'),
 
   // Polls
   createPoll: (data: any) => api.post('/polls', data),
@@ -195,6 +198,9 @@ export const apiService = {
   getRoomById: (roomId: string) => api.get(`/rooms/${roomId}`), // For verifying stored room
   sendInvites: (roomId: string, formData: FormData) => api.post(`/rooms/${roomId}/invite`, formData),
   getLiveParticipants: (roomId: string) => api.get(`/rooms/${roomId}/participants`),
+    getAvailableSessionsWithPolls: () => api.get('/rooms/available/sessions'),
+
+
 // getHostSessionReports: () => axios.get('/api/reports/host-sessions'),
   // Reports
   getReportForSession: (sessionId: string) => api.get(`/session-reports/session/${sessionId}`),
@@ -204,6 +210,11 @@ export const apiService = {
     // Student: get count of sessions joined by the authenticated user
   getMyJoinedSessionsCount: () => api.get('/session-reports/me'),
   getMyRecentSessions: () => api.get('/session-reports/me/recent'),
+   getStudentPollHistory: () => api.get('/session-reports/me/polls'),
+  getDebugSessionData: () => api.get('/session-reports/me/debug'),
+  // Achievements
+  getUserAchievements: () => api.get('/achievements/me'),
+  getDebugAchievementData: () => api.get('/achievements/debug'),
   // Leaderboard (aggregated per-user stats)
   getLeaderboard: () => api.get('/reports/leaderboard'),
   getHostStats: () => api.get('/stats/host'),
@@ -229,8 +240,12 @@ export const apiService = {
     segmentCount: number;
   }) => api.post('/timer-transcripts/save', data),
   
-  generateTimerQuestions: (timerTranscriptId: string) => 
-    api.post('/timer-transcripts/generate-questions', { timerTranscriptId }),
+  generateTimerQuestions: (timerTranscriptId: string, aiProvider: 'gemini' | 'ollama' = 'gemini', questionCount: number = 5) => 
+    api.post('/timer-transcripts/generate-questions', { 
+      timerTranscriptId, 
+      aiProvider, 
+      questionCount 
+    }),
   
   getTimerTranscriptsBySession: (sessionId: string, hostId?: string) => 
     api.get(`/timer-transcripts/by-session/${sessionId}`, { params: { hostId } }),
@@ -246,6 +261,75 @@ export const apiService = {
   getCreativeTimerQuestions: (roomId: string) => 
     api.get(`/timer-transcripts/creative-questions/${roomId}`),
   
+  // AI Providers APIs
+  getAIProviders: () => 
+    api.get('/ai-providers/providers'),
+  
+  testAIProvider: (provider: 'gemini' | 'ollama', testText?: string) => 
+    api.post(`/ai-providers/test/${provider}`, { testText }),
+  
+  switchAIProvider: (provider: 'gemini' | 'ollama') => 
+    api.post(`/ai-providers/switch/${provider}`),
+
+  // Ollama Questions APIs
+  generateOllamaQuestions: (data: {
+    transcriptId: string;
+    sessionId: string;
+    roomId: string;
+    hostId: string;
+    questionCount?: number;
+  }) => api.post('/ollama-questions/generate', data),
+  
+  getOllamaQuestionsByRoom: (roomId: string) => 
+    api.get(`/ollama-questions/room/${roomId}`),
+  
+  getOllamaQuestionsBySession: (sessionId: string) => 
+    api.get(`/ollama-questions/session/${sessionId}`),
+  
+  getOllamaQuestionsByTranscript: (transcriptId: string) => 
+    api.get(`/ollama-questions/transcript/${transcriptId}`),
+  
+  deleteOllamaQuestionsByRoom: (roomId: string) => 
+    api.delete(`/ollama-questions/room/${roomId}`),
+
+  // RAG Questions APIs (Groq + Cohere)
+  generateRAGSegmentQuestions: (data: {
+    transcriptText: string;
+    transcriptId: string;
+    segmentId: string;
+    sessionId: string;
+    roomId: string;
+    hostId: string;
+    questionCount?: number;
+  }) => api.post('/rag-questions/segment/generate', data),
+  
+  generateRAGTimerQuestions: (data: {
+    transcriptText: string;
+    transcriptId: string;
+    sessionId: string;
+    roomId: string;
+    hostId: string;
+    questionCount?: number;
+  }) => api.post('/rag-questions/timer/generate', data),
+  
+  getRAGSegmentQuestionsByRoom: (roomId: string) => 
+    api.get(`/rag-questions/segment/room/${roomId}`),
+  
+  getRAGTimerQuestionsByRoom: (roomId: string) => 
+    api.get(`/rag-questions/timer/room/${roomId}`),
+  
+  getRAGSegmentQuestionsBySession: (sessionId: string) => 
+    api.get(`/rag-questions/segment/session/${sessionId}`),
+  
+  getRAGTimerQuestionsBySession: (sessionId: string) => 
+    api.get(`/rag-questions/timer/session/${sessionId}`),
+  
+  deleteRAGQuestionsByRoom: (roomId: string) => 
+    api.delete(`/rag-questions/room/${roomId}`),
+
+  testRAGSystem: () => 
+    api.get('/rag-questions/test'),
+
   // Get all timer transcripts with questions for a room
   getTimerTranscriptsWithQuestions: (roomId: string) => 
     api.get(`/timer-transcripts/with-questions/${roomId}`),
