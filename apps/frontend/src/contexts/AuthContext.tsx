@@ -165,7 +165,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Define constants
-const API_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 const ROOM_STORAGE_KEY = 'pollgen_active_room'; // Key to save active room in localStorage
 
 export function AuthProvider({ children }: { children: ReactNode }) {
