@@ -1,27 +1,79 @@
 # Render.com Service Configuration
 # This file helps with automatic deployment setup
 
-name: pollgen-backend
-type: web
-
-env:
-  - NODE_VERSION=18
-
-buildCommand: npm install && npm install typescript && npx tsc --project tsconfig.production.json
-startCommand: npm run render:start
-
-# Health check endpoint
-healthCheckPath: /
-
-# Environment variables (set these in Render dashboard)
-envVars:
-  - key: PORT
-    value: 8000
-  - key: NODE_ENV
-    value: production
-  - key: MONGODB_URI
-    fromDatabase: mongodb-atlas
-  - key: FRONTEND_URL
-    fromService: pollgen-frontend
-  - key: GEMINI_API_KEY
-    fromSecret: gemini-api-key
+services:
+  - type: web
+    name: pollgen-backend
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm install typescript && npx tsc --project tsconfig.production.json
+    startCommand: npm run render:start
+    
+    # Health check endpoint
+    healthCheckPath: /
+    
+    # Environment variables (IMPORTANT: Set these in Render dashboard)
+    envVars:
+      - key: PORT
+        value: 8000
+      
+      - key: NODE_ENV
+        value: production
+      
+      # REQUIRED: Add in Render Dashboard
+      - key: MONGODB_URI
+        sync: false  # Set manually in dashboard
+      
+      - key: GEMINI_API_KEY
+        sync: false  # Set manually in dashboard - Get from https://aistudio.google.com/app/apikey
+      
+      # Frontend URLs
+      - key: FRONTEND_URL_PROD
+        value: https://automatic-poll-generation-frontend.vercel.app
+      
+      - key: FRONTEND_URL_LOCAL
+        value: http://localhost:5174
+      
+      - key: CORS_ORIGIN
+        value: https://automatic-poll-generation-frontend.vercel.app
+      
+      # OAuth Redirect URIs (Update with your actual Render URL)
+      - key: GOOGLE_REDIRECT_URI_PROD
+        value: https://automatic-poll-generation-backend.onrender.com/api/auth/google/callback
+      
+      - key: ZOHO_REDIRECT_URI_PROD
+        value: https://automatic-poll-generation-backend.onrender.com/oauth/callback
+      
+      # Secrets (Set these in Render dashboard)
+      - key: ACCESS_TOKEN_SECRET
+        generateValue: true
+      
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      
+      - key: JWT_SECRET
+        generateValue: true
+      
+      # Optional OAuth (Add if using Google/Zoho)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      
+      - key: ZOHO_CLIENT_ID
+        sync: false
+      
+      - key: ZOHO_CLIENT_SECRET
+        sync: false
+      
+      # Cloudinary (Add if using file uploads)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      
+      - key: CLOUDINARY_API_SECRET
+        sync: false

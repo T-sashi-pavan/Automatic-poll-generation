@@ -1,10 +1,16 @@
 // Quick test for the Gemini API with the new key
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+require('dotenv').config({ path: './apps/backend/.env' });
 
 async function testGeminiAPI() {
   console.log('🧪 Testing Gemini API with new key...');
   
-  const apiKey = 'AIzaSyDuqD6o3oRRFqwlfq_GJvaAdwyYqgZkJ4o';
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error('❌ GEMINI_API_KEY not found in environment variables');
+    console.error('Please set it in apps/backend/.env file');
+    process.exit(1);
+  }
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 

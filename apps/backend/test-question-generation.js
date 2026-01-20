@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 // Test script to verify AutoQuestionService is working
 async function testQuestionGeneration() {
@@ -6,7 +7,11 @@ async function testQuestionGeneration() {
     console.log('🧪 [TEST] Starting question generation test...');
     
     // Connect to database
-    const mongoUri = 'mongodb+srv://sashipavan:SESSI111111%40%40%40%40%40%40@cluster0.tjsej5j.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error('❌ MONGODB_URI not found in environment variables');
+      process.exit(1);
+    }
     await mongoose.connect(mongoUri);
     console.log('✅ [TEST] Database connected');
     

@@ -1,5 +1,12 @@
 const { MongoClient } = require('mongodb');
-const uri = 'mongodb+srv://sashipavan:SESSI111111%40%40%40%40%40%40@cluster0.tjsej5j.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+require('dotenv').config({ path: './apps/backend/.env' });
+
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  console.error('❌ MONGODB_URI not found in environment variables');
+  console.error('Please set it in apps/backend/.env file');
+  process.exit(1);
+}
 
 async function checkLatestTranscripts() {
   const client = new MongoClient(uri);

@@ -90,16 +90,27 @@ class TimerQuestionsService {
           lastError = error;
           console.error(`❌ [TIMER-QUESTIONS] Attempt ${attempt} failed:`, error.message);
           
-          // If it's a 503 error, wait and retry
-          if (error.message?.includes('503') || error.message?.includes('Service Unavailable')) {
+          // Check for API key issues
+          if (error.message?.includes('API_KEY_INVALID') || error.message?.includes('API key')) {
+            console.error('🔑 [TIMER-QUESTIONS] CRITICAL: Invalid or missing Gemini API key!');
+            throw new Error('Gemini API key is invalid or missing. Please check your GEMINI_API_KEY environment variable.');
+          }
+          
+          // If it's a 503 error or service unavailable, wait and retry
+          if (error.message?.includes('503') || error.message?.includes('Service Unavailable') || 
+              error.message?.includes('overloaded') || error.message?.includes('temporarily')) {
             if (attempt < 3) {
               const waitTime = attempt * 2000; // 2s, 4s
-              console.log(`⏳ [TIMER-QUESTIONS] Waiting ${waitTime}ms before retry...`);
+              console.log(`⏳ [TIMER-QUESTIONS] Service temporarily unavailable. Waiting ${waitTime}ms before retry...`);
               await new Promise(resolve => setTimeout(resolve, waitTime));
               continue;
             }
           }
-          throw error; // If not 503 or final attempt, throw immediately
+          
+          // For other errors on final attempt, throw immediately
+          if (attempt === 3) {
+            throw new Error(`Gemini API failed after ${attempt} attempts: ${error.message}`);
+          }
         }
       }
       

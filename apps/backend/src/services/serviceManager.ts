@@ -2,6 +2,7 @@ import { AutoQuestionService } from './autoQuestionService';
 import { GeminiService } from './geminiService';
 import OllamaService from './ollamaService';
 import TimerQuestionsService from './timerQuestionsService';
+import ragService from './ragService';
 import { Server as SocketIOServer } from 'socket.io';
 import { IQuestionConfig } from '../web/models/questions.model';
 
@@ -37,6 +38,7 @@ class ServiceManager {
     console.log('✅ [SERVICES] Gemini service initialized for timer transcripts');
     console.log('✅ [SERVICES] Ollama service initialized for local AI');
     console.log('✅ [SERVICES] Timer questions service initialized for creative questions');
+    console.log('✅ [SERVICES] RAG service available for fallback question generation');
   }
 
   getAutoQuestionService(): AutoQuestionService {
@@ -65,6 +67,10 @@ class ServiceManager {
       throw new Error('OllamaService not initialized. Call initializeServices first.');
     }
     return this.ollamaService;
+  }
+
+  getRagService() {
+    return ragService;
   }
 
   setProvider(provider: AIProvider): void {

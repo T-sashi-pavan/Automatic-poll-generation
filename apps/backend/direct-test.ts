@@ -3,13 +3,21 @@
 import { AutoQuestionService } from './src/services/autoQuestionService';
 import { Segment } from './src/web/models/Segment';
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 async function testAutoQuestionService() {
   try {
     console.log('🧪 [TEST] Testing AutoQuestionService directly...');
     
     // Connect to database
-    await mongoose.connect('mongodb+srv://sashipavan:SESSI111111%40%40%40%40%40%40@cluster0.tjsej5j.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error('❌ MONGODB_URI not found in environment variables');
+      process.exit(1);
+    }
+    await mongoose.connect(mongoUri);
     console.log('✅ [TEST] Database connected');
     
     // Create a test segment

@@ -6,8 +6,26 @@
       "src": "apps/frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "apps/frontend/dist"
       }
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/apps/frontend/dist/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/apps/frontend/dist/index.html"
+    }
+  ],
+  "buildCommand": "cd apps/frontend && npm install && npm run build",
+  "outputDirectory": "apps/frontend/dist",
+  "framework": null,
+  "env": {
+    "VITE_BACKEND_URL": "https://automatic-poll-generation-backend.onrender.com",
+    "VITE_API_URL": "https://automatic-poll-generation-backend.onrender.com/api",
+    "VITE_WS_URL": "wss://automatic-poll-generation-backend.onrender.com"
+  }
 }

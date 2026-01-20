@@ -18,7 +18,30 @@ pnpm-lock.yaml
 **/.env
 **/.env.local
 **/.env.*.local
+**/.env.production
+**/.env.development
+**/.env.staging
 **/!.env.example
+
+# AI-Generated Documentation (exclude from repo)
+CLEANUP_PLAN.md
+COMMIT_MESSAGE.md
+DEPLOYMENT_CHECKLIST.md
+DEPLOYMENT_READY.md
+PRODUCTION_DEPLOYMENT_GUIDE.md
+QUICK_DEPLOY.md
+QUICK_REFERENCE.md
+RENDER_VERCEL_VERIFICATION.md
+SECURITY_AUDIT.md
+SECURITY_CLEARANCE.md
+SEGMENT_QUALITY_FIX.md
+TESTING_GUIDE.md
+TIMER_QUESTIONS_FIX.md
+AI_QUESTIONS_MOBILE_RESPONSIVE_COMPLETE.md
+AUDIO_CAPTURE_README.md
+
+# Old project folder
+PollMain/
 
 # OS files
 **/.DS_Store

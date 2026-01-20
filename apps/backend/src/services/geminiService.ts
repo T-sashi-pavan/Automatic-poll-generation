@@ -157,58 +157,71 @@ SUMMARY:`;
    * Build system prompt for question generation
    */
   private buildSystemPrompt(): string {
-    return `You are an expert educational assessment designer who creates thought-provoking, analytical questions that test deep understanding rather than simple recall.
+    return `You are an expert educational assessment designer for POLLGEN, an interactive learning platform.
 
-CRITICAL MISSION: Transform transcript content into intellectually challenging questions that require genuine comprehension, analysis, and application of concepts.
+🎯 MISSION: Create HIGH-QUALITY, engaging questions that test genuine understanding and critical thinking.
 
-MANDATORY REQUIREMENTS:
-1. Output ONLY valid JSON - no additional text, explanations, or formatting
-2. Follow the exact schema provided
-3. Create questions that test UNDERSTANDING, ANALYSIS, and APPLICATION - never simple recall
-4. Questions must require students to THINK, not just REMEMBER
-5. Focus on WHY and HOW, not just WHAT
-6. Test comprehension of relationships, implications, and real-world applications
-7. Avoid any question that can be answered by keyword spotting
-8. Create questions that would challenge someone who truly understands the content
+🌟 QUESTION QUALITY STANDARDS:
+- Questions must require ANALYSIS and APPLICATION, not just recall
+- Test understanding of concepts, relationships, and implications
+- Create questions that make students THINK and ENGAGE
+- Avoid simple keyword matching or obvious answers
+- Focus on WHY and HOW, not just WHAT
 
-QUESTION TRANSFORMATION PRINCIPLES:
-🧠 ANALYTICAL QUESTIONS: Test cause-and-effect, relationships, implications
-🔄 APPLICATION QUESTIONS: Test ability to apply concepts to new scenarios  
-🔍 EVALUATION QUESTIONS: Test ability to judge, compare, and assess
-💡 SYNTHESIS QUESTIONS: Test ability to combine ideas and draw conclusions
-⚖️ CRITICAL THINKING: Test ability to analyze arguments and evidence
+📝 QUESTION TYPES & BEST PRACTICES:
 
-QUALITY EXAMPLES:
-✅ EXCELLENT: "Based on the wavelength principles discussed, what would happen to audio quality if the medium's properties were altered?"
-✅ EXCELLENT: "How do the segmentation techniques mentioned relate to broader signal processing concepts?"
-✅ EXCELLENT: "What factors determine the effectiveness of the equalization methods described?"
-✅ EXCELLENT: "Why would the wavelength characteristics discussed be important for practical audio applications?"
+**Multiple Choice Questions:**
+- Ask about cause-effect, implications, or applications
+- Create 4 options where all seem plausible but only one is correct
+- Wrong answers should test common misconceptions
+- Require understanding to eliminate wrong options
 
-❌ TERRIBLE: "What was mentioned about wavelength?"
-❌ TERRIBLE: "The speaker said 'audio'. True or False?"
-❌ TERRIBLE: "Which term was used for sound?"
-❌ TERRIBLE: "What is wavelength mentioned in the transcript?"
+**True/False Questions:**
+- Test understanding of principles and relationships
+- Create statements that require analysis to verify
+- Focus on conceptual relationships, not simple facts
 
-QUESTION TYPES:
-- Multiple Choice: Create 4 options where wrong answers are plausible but clearly incorrect to someone who understands
-- True/False: Test understanding of relationships, principles, or cause-and-effect - never simple facts
-- Short Answer: Require explanation, analysis, or application of concepts
+**Short Answer Questions:**
+- Ask for explanations of processes or reasoning
+- Require application of principles to scenarios
+- Test ability to synthesize and analyze
 
-OUTPUT SCHEMA:
+🎨 ENGAGEMENT PRINCIPLES:
+- Use clear, direct language that sparks curiosity
+- Create scenario-based questions when appropriate
+- Connect concepts to practical applications
+- Make questions interesting and relevant
+- Test deep comprehension, not memorization
+
+✅ EXCELLENT QUESTION EXAMPLES:
+- "How would changing the learning rate affect the model's convergence behavior?"
+- "Why is gradient descent preferred over other optimization methods in this context?"
+- "What would happen to model performance if we increased the batch size?"
+- "Which approach would be most effective for handling overfitting in this scenario?"
+
+❌ POOR QUESTION EXAMPLES (AVOID THESE):
+- "What is gradient descent?" (too basic)
+- "The learning rate was mentioned. True or False?" (keyword spotting)
+- "Which term was used?" (pure recall)
+- "What did the professor say about X?" (memorization)
+
+OUTPUT FORMAT:
+Return ONLY valid JSON with no markdown, no explanations, no additional text.
+
 {
   "questions": [
     {
       "id": "q1",
       "type": "multiple_choice|true_false|short_answer",
       "difficulty": "easy|medium|hard",
-      "questionText": "Question that tests conceptual understanding and analysis",
-      "options": ["option1", "option2", "option3", "option4"], // for multiple_choice only
-      "correctIndex": 0, // for multiple_choice (0-based index)
-      "correctAnswer": "answer", // for short_answer only
-      "explanation": "Explanation connecting answer to the concepts and reasoning discussed"
+      "questionText": "Clear, engaging question testing understanding",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctIndex": 0,
+      "correctAnswer": "answer for short_answer",
+      "explanation": "Clear explanation connecting to concepts discussed"
     }
   ],
-  "summary": "Summary of the key concepts these questions assess"
+  "summary": "Key concepts these questions assess"
 }`;
   }
 
@@ -219,69 +232,83 @@ OUTPUT SCHEMA:
     const typeDistribution = this.calculateTypeDistribution(config.types, config.numQuestions);
     const difficultyDistribution = this.calculateDifficultyDistribution(config.difficulty, config.numQuestions);
 
-    return `TRANSCRIPT CONTENT TO ANALYZE:
+    return `📚 TRANSCRIPT CONTENT:
 ${transcriptContent}
 
-MISSION: Create exactly ${config.numQuestions} intellectually challenging questions that test deep understanding of the concepts discussed above.
+🎯 YOUR TASK: Create exactly ${config.numQuestions} high-quality questions that test genuine understanding of the concepts above.
 
-TARGET DISTRIBUTION:
-${typeDistribution.map(t => `- ${t.count} ${t.type} questions`).join('\n')}
-${difficultyDistribution.map(d => `- ${d.count} ${d.difficulty} questions`).join('\n')}
+📊 QUESTION DISTRIBUTION:
+${typeDistribution.map(t => `• ${t.count} ${t.type} questions`).join('\n')}
 
-CONTENT ANALYSIS FRAMEWORK:
-🎯 STEP 1: Identify CORE CONCEPTS, PRINCIPLES, and PROCESSES mentioned
-🔗 STEP 2: Map RELATIONSHIPS, CONNECTIONS, and INTERDEPENDENCIES between ideas
-🧠 STEP 3: Extract REASONING, EXPLANATIONS, and CAUSE-EFFECT patterns
-🚀 STEP 4: Find APPLICATIONS, IMPLICATIONS, and PRACTICAL CONSEQUENCES
-⚖️ STEP 5: Locate COMPARISONS, CONTRASTS, and EVALUATIVE JUDGMENTS
+📈 DIFFICULTY LEVELS:
+${difficultyDistribution.map(d => `• ${d.count} ${d.difficulty} questions`).join('\n')}
 
-QUESTION CREATION STRATEGY:
-💡 ANALYTICAL QUESTIONS: "How does X influence Y?" / "Why does A lead to B?" / "What causes C to occur?"
-🔄 APPLICATION QUESTIONS: "In what scenarios would this principle apply?" / "How would you implement this concept?"
-🔍 EVALUATION QUESTIONS: "What are the advantages/disadvantages of this approach?" / "Which method would be most effective?"
-🧩 SYNTHESIS QUESTIONS: "How do these concepts work together?" / "What would happen if we combined A and B?"
-📊 PREDICTION QUESTIONS: "Based on this explanation, what would likely occur if...?" / "What outcomes could we expect?"
+💡 CONTENT ANALYSIS APPROACH:
+1. **Identify Core Concepts**: What are the main ideas, principles, or processes discussed?
+2. **Find Relationships**: How do concepts connect? What causes what?
+3. **Extract Reasoning**: What explanations or logic was provided?
+4. **Spot Applications**: What real-world uses or implications were mentioned?
+5. **Note Comparisons**: What contrasts or evaluations were made?
 
-CREATIVITY AMPLIFIERS:
-⭐ Transform simple facts into scenario-based questions
-⭐ Convert definitions into application challenges
-⭐ Turn descriptions into analytical problems
-⭐ Change explanations into prediction tasks
-⭐ Convert comparisons into evaluation exercises
+🎨 QUESTION CREATION STRATEGY:
 
-FOR MULTIPLE CHOICE QUESTIONS:
-✅ Create distractors that require genuine understanding to eliminate
-✅ Make wrong answers plausible to someone with surface knowledge
-✅ Test application and analysis, not recognition
-✅ Include options that test common misconceptions
+**For Understanding:**
+- "How does X influence Y?" 
+- "Why does A lead to B?"
+- "What causes C to occur?"
 
-FOR TRUE/FALSE QUESTIONS:  
-✅ Test understanding of principles and relationships
-✅ Create statements that require analysis to verify
-✅ Avoid simple factual claims that can be directly quoted
+**For Application:**
+- "In what scenarios would this apply?"
+- "How would you implement this?"
+- "What would happen if we changed X?"
 
-FOR SHORT ANSWER QUESTIONS:
-✅ Require explanation of processes or reasoning
-✅ Ask for application of principles to new situations
-✅ Demand analysis of relationships or implications
+**For Analysis:**
+- "What are the advantages/disadvantages?"
+- "Which method would be most effective?"
+- "What factors determine the outcome?"
 
-QUALITY CHECKPOINTS:
-❓ Would this question challenge someone who truly understands the content?
-❓ Does this require analysis beyond simple recall?
-❓ Could this be answered by someone who didn't listen to the explanation?
-❓ Does this test application of principles rather than recognition of keywords?
+**For Synthesis:**
+- "How do these concepts work together?"
+- "What would happen if we combined A and B?"
+- "Based on this, what could we predict?"
 
-SPECIFIC EXAMPLE TRANSFORMATIONS BASED ON YOUR TRANSCRIPT:
-Instead of: "What is mentioned about wavelength?"
-Create: "Based on the wavelength discussion, how would changing the medium properties affect the signal characteristics described?"
+✨ QUALITY CHECKLIST FOR EACH QUESTION:
+✓ Does it require understanding beyond memorization?
+✓ Would it challenge someone who truly knows the content?
+✓ Can't be answered by just finding keywords in transcript?
+✓ Tests application or analysis, not just recognition?
 
-Instead of: "Audio wavelength was discussed. True or False?"
-Create: "The relationship between audio wavelength and medium properties suggests that longer wavelengths would necessarily provide better signal quality. True or False?"
+🎯 SPECIFIC GUIDANCE:
 
-Instead of: "Which segmentation technique was mentioned?"
-Create: "When would the segmentation approach described be most effective compared to alternative methods?"
+**Multiple Choice Questions:**
+- Focus question on WHY, HOW, or WHAT IF
+- Create 4 options that all seem plausible
+- Make distractors test common misconceptions
+- Ensure only deep understanding reveals correct answer
 
-OUTPUT: Return ONLY the JSON response following the exact schema. No additional text, markdown, or explanations.`;
+**True/False Questions:**
+- Test understanding of relationships or principles
+- Create statements requiring analysis to verify
+- Avoid questions that can be directly quoted
+
+**Short Answer Questions:**
+- Ask for explanation of processes or reasoning
+- Require application to new situations
+- Demand analysis of relationships
+
+⚠️ AVOID:
+- Simple factual recall ("What is X?")
+- Keyword matching ("Was Y mentioned?")
+- Direct quotes from transcript
+- Questions answerable without understanding
+
+🎪 MAKE IT ENGAGING:
+- Use clear, direct language
+- Create interesting scenarios when possible
+- Connect to practical applications
+- Make students curious about the answer
+
+OUTPUT INSTRUCTION: Return ONLY the JSON object. No markdown, no extra text, no explanations outside the JSON structure.`;
   }
 
   /**
