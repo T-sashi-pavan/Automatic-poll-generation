@@ -1348,19 +1348,36 @@ export class AudioStreamer {
         this.isRecording = true;
         this.callbacks.onStatusChange('recording');
         
-        // Show mobile-specific instructions
-        this.callbacks.onTranscript({
-          type: 'partial',
-          meetingId: this.meetingId,
-          role: this.role,
-          participantId: this.participantId,
-          text: '[📱 Mobile Recording Ready] Use the microphone button below to capture speech. Each tap records one phrase.',
-          startTime: Date.now(),
-          endTime: Date.now(),
-          timestamp: Date.now()
-        });
+        // CRITICAL FIX: Actually start the mobile speech recognition!
+        if (this.simpleMobileSpeechRecognition) {
+          try {
+            console.log('🎤 Starting mobile speech recognition...');
+            this.simpleMobileSpeechRecognition.start();
+            console.log('✅ Mobile speech recognition started successfully');
+            
+            // Show mobile-specific instructions for CONTINUOUS recording
+            this.callbacks.onTranscript({
+              type: 'partial',
+              meetingId: this.meetingId,
+              role: this.role,
+              participantId: this.participantId,
+              text: '[📱 Mobile Continuous Recording Active] Speak naturally - the system will detect pauses automatically.',
+              startTime: Date.now(),
+              endTime: Date.now(),
+              timestamp: Date.now()
+            });
+          } catch (error) {
+            console.error('❌ Failed to start mobile speech recognition:', error);
+            this.callbacks.onError('Failed to start mobile recording');
+            return false;
+          }
+        } else {
+          console.error('❌ Mobile speech recognition not initialized');
+          this.callbacks.onError('Mobile speech recognition not available');
+          return false;
+        }
 
-        console.log('✅ Mobile recording mode activated - ready for speech capture');
+        console.log('✅ Mobile recording mode activated - continuous speech capture ready');
         return true;
       } else {
         console.log('🖥️ Desktop device detected - using full recording functionality');
