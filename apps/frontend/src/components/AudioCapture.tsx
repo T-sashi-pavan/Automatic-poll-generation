@@ -23,6 +23,7 @@ import GuestLinkGenerator from '../components/host/GuestLinkGenerator';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { AudioStreamer, type TranscriptMessage, formatTimestamp } from '../utils/audioStreamer';
+import { MobileSpeechRecognition, type TranscriptResult } from '../utils/mobileSpeechRecognition';
 
 interface TranscriptLine {
   id: string;
@@ -96,8 +97,10 @@ const AudioCapture = () => {
   });
   
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
+  const mobileSpeechRef = useRef<MobileSpeechRecognition | null>(null);
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
+  const isMobile = isMobileDevice(); // Detect mobile once
 
   // Mobile device detection functions
   const isMobileDevice = () => {
@@ -383,6 +386,75 @@ const AudioCapture = () => {
     audioStreamerRef.current = audioStreamer;
     console.log('✅ AudioStreamer assigned to ref:', audioStreamerRef.current);
 
+    // Initialize mobile speech recognition for mobile devices
+    if (isMobile) {
+      console.log('📱 [MOBILE] Initializing Web Speech API for mobile device');
+      const mobileSpeech = new MobileSpeechRecognition(activeRoom._id);
+      
+      if (mobileSpeech.isSupported() && mobileSpeech.initialize()) {
+        mobileSpeech.onTranscript((result: TranscriptResult) => {
+          console.log(`📝 [MOBILE] ${result.isFinal ? 'Final' : 'Interim'} transcript:`, result.text);
+          
+          // Create transcript line (only for final results to avoid duplicates)
+          if (result.isFinal && result.text.trim().length > 0) {
+            const newLine: TranscriptLine = {
+              id: `${Date.now()}-${Math.random()}`,
+              role: 'host',
+              text: result.text,
+              timestamp: result.timestamp,
+              isFinal: true,
+              startTime: result.timestamp,
+              endTime: result.timestamp
+            };
+
+            setTranscriptLines(prev => {
+              const updated = [...prev, newLine];
+              // Auto-save to localStorage
+              try {
+                localStorage.setItem(sessionStorageKey, JSON.stringify(updated));
+              } catch (error) {
+                console.warn('⚠️ Failed to save transcript:', error);
+              }
+              return updated;
+            });
+
+            // Send to backend for storage
+            transcriptCapture.addTranscript(newLine.text, newLine.role, newLine.displayName);
+          }
+        });
+
+        mobileSpeech.onError((error: string) => {
+          console.error('❌ [MOBILE] Speech recognition error:', error);
+          toast.error(`Speech recognition error: ${error}`);
+          setDebugInfo(prev => ({
+            ...prev,
+            lastError: error,
+            speechApiInitialized: false,
+            speechApiListening: false
+          }));
+        });
+
+        mobileSpeech.onStatus((status: string) => {
+          console.log('📱 [MOBILE] Status:', status);
+          setDebugInfo(prev => ({
+            ...prev,
+            speechApiListening: status === 'recording'
+          }));
+        });
+
+        mobileSpeechRef.current = mobileSpeech;
+        setDebugInfo(prev => ({
+          ...prev,
+          speechApiSupported: true,
+          speechApiInitialized: true
+        }));
+        console.log('✅ [MOBILE] Web Speech API initialized successfully');
+      } else {
+        console.warn('⚠️ [MOBILE] Web Speech API not supported on this device');
+        toast.error('Voice recognition not available on this device');
+      }
+    }
+
     // Initialize debug info
     setDebugInfo(prev => ({
       ...prev,
@@ -408,8 +480,15 @@ const AudioCapture = () => {
         }
       }
       
-      // Only cleanup audio resources, not the recording session data
+      // Cleanup audio resources
       audioStreamer.cleanup();
+      
+      // Cleanup mobile speech if it exists
+      if (mobileSpeechRef.current) {
+        console.log('🧹 [MOBILE] Cleaning up Web Speech API');
+        mobileSpeechRef.current.cleanup();
+        mobileSpeechRef.current = null;
+      }
     };
   }, [user, activeRoom]); // Re-add dependencies since we need room to exist
 
@@ -443,7 +522,9 @@ const AudioCapture = () => {
     console.log('🎤 Handle Start Recording called');
     console.log('🎤 User:', user);
     console.log('🎤 Active Room:', activeRoom);
+    console.log('🎤 Is Mobile:', isMobile);
     console.log('🎤 AudioStreamer Ref:', audioStreamerRef.current);
+    console.log('🎤 MobileSpeech Ref:', mobileSpeechRef.current);
     
     // Update debug info
     setDebugInfo(prev => ({
@@ -452,19 +533,47 @@ const AudioCapture = () => {
       speechApiInitialized: false,
       speechApiListening: false
     }));
-    
-    if (!audioStreamerRef.current) {
-      toast.error('Audio system not initialized');
-      console.error('❌ AudioStreamer ref is null');
-      setDebugInfo(prev => ({
-        ...prev,
-        lastError: 'AudioStreamer ref is null'
-      }));
-      return;
-    }
 
     try {
       setStatus('connecting');
+      
+      // Use mobile speech recognition for mobile devices
+      if (isMobile && mobileSpeechRef.current) {
+        console.log('📱 [MOBILE] Starting Web Speech API recording');
+        
+        const started = await mobileSpeechRef.current.start();
+        if (started) {
+          console.log('✅ [MOBILE] Web Speech API started successfully');
+          setStatus('recording');
+          toast.success('Recording started (Mobile mode)');
+          setDebugInfo(prev => ({
+            ...prev,
+            speechApiInitialized: true,
+            speechApiListening: true,
+            audioContextState: 'mobile-speech-api'
+          }));
+        } else {
+          console.error('❌ [MOBILE] Failed to start Web Speech API');
+          setStatus('error');
+          toast.error('Failed to start voice recognition');
+          setDebugInfo(prev => ({
+            ...prev,
+            lastError: 'Failed to start Web Speech API'
+          }));
+        }
+        return;
+      }
+      
+      // Desktop mode: use AudioStreamer with WebSocket
+      if (!audioStreamerRef.current) {
+        toast.error('Audio system not initialized');
+        console.error('❌ AudioStreamer ref is null');
+        setDebugInfo(prev => ({
+          ...prev,
+          lastError: 'AudioStreamer ref is null'
+        }));
+        return;
+      }
       
       // Initialize audio with system audio option
       console.log('🔧 Initializing audio with system audio:', includeSystemAudio);
@@ -537,6 +646,23 @@ const AudioCapture = () => {
   };
 
   const handleStopRecording = async () => {
+    console.log('⏹️ Handle Stop Recording called');
+    console.log('⏹️ Is Mobile:', isMobile);
+    
+    // Stop mobile speech if mobile
+    if (isMobile && mobileSpeechRef.current) {
+      console.log('📱 [MOBILE] Stopping Web Speech API');
+      mobileSpeechRef.current.stop();
+      setStatus('stopped');
+      toast.success('Recording stopped');
+      setDebugInfo(prev => ({
+        ...prev,
+        speechApiListening: false
+      }));
+      return;
+    }
+    
+    // Desktop: stop AudioStreamer
     if (!audioStreamerRef.current) return;
 
     try {
