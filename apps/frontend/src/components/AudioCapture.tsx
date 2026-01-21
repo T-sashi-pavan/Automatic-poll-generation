@@ -241,10 +241,18 @@ const AudioCapture = () => {
   // WebSocket URL - adjust based on your backend configuration
   const getWebSocketUrl = () => {
     // Use environment variable for production, fall back to localhost for development
-    const backendUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
     
-    // Convert HTTP(S) URL to WebSocket URL
-    const wsUrl = backendUrl.replace(/^https?:/, backendUrl.startsWith('https:') ? 'wss:' : 'ws:');
+    // Convert HTTP(S) URL to WebSocket URL (handle wss:// if already present)
+    let wsUrl = backendUrl;
+    if (backendUrl.startsWith('http://')) {
+      wsUrl = backendUrl.replace('http://', 'ws://');
+    } else if (backendUrl.startsWith('https://')) {
+      wsUrl = backendUrl.replace('https://', 'wss://');
+    } else if (!backendUrl.startsWith('ws://') && !backendUrl.startsWith('wss://')) {
+      // If no protocol, assume HTTPS for production
+      wsUrl = `wss://${backendUrl}`;
+    }
     
     return `${wsUrl}/ws/asr`;
   };

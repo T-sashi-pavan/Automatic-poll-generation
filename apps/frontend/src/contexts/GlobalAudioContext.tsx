@@ -465,8 +465,18 @@ export const GlobalAudioProvider: React.FC<GlobalAudioProviderProps> = ({ childr
     console.log('🔄 [GlobalAudio] Initializing AudioStreamer for room:', activeRoom._id);
 
     const getWebSocketUrl = () => {
-      const backendUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      return backendUrl.replace(/^https?:/, backendUrl.startsWith('https:') ? 'wss:' : 'ws:') + '/ws/asr';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      
+      let wsUrl = backendUrl;
+      if (backendUrl.startsWith('http://')) {
+        wsUrl = backendUrl.replace('http://', 'ws://');
+      } else if (backendUrl.startsWith('https://')) {
+        wsUrl = backendUrl.replace('https://', 'wss://');
+      } else if (!backendUrl.startsWith('ws://') && !backendUrl.startsWith('wss://')) {
+        wsUrl = `wss://${backendUrl}`;
+      }
+      
+      return wsUrl + '/ws/asr';
     };
 
     const audioStreamer = new AudioStreamer(
