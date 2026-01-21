@@ -263,120 +263,184 @@ const AudioCapture = () => {
   useEffect(() => {
     const isMobile = isMobileDevice();
     console.log('📱 [MOBILE] Is mobile device:', isMobile);
+    console.log('📱 [MOBILE] User agent:', navigator.userAgent);
     
     if (isMobile) {
       // Check if webkitSpeechRecognition is available
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       
       if (SpeechRecognition) {
-        console.log('🎤 [MOBILE] webkitSpeechRecognition available');
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-        
-        recognition.onstart = () => {
-          console.log('🎤 [MOBILE] Speech recognition started');
-          setIsMobileRecording(true);
-          setStatus('recording');
-        };
-        
-        recognition.onresult = (event: any) => {
-          let interimTranscript = '';
-          let finalTranscript = '';
+        console.log('🎤 [MOBILE] webkitSpeechRecognition available, creating instance');
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
+          recognition.maxAlternatives = 1;
           
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + ' ';
-            } else {
-              interimTranscript += transcript;
-            }
-          }
+          console.log('🎤 [MOBILE] Recognition instance created successfully');
+          console.log('🎤 [MOBILE] Settings:', {
+            continuous: recognition.continuous,
+            interimResults: recognition.interimResults,
+            lang: recognition.lang
+          });
           
-          console.log('📝 [MOBILE] Transcript:', { final: finalTranscript, interim: interimTranscript });
+          recognition.onstart = () => {
+            console.log('✅ [MOBILE] Speech recognition STARTED - listening for speech');
+            setIsMobileRecording(true);
+            setStatus('recording');
+            toast.success('🎤 Mobile recording active - speak now!');
+          };
           
-          if (finalTranscript) {
-            // Add final transcript to transcript lines
-            const newLine: TranscriptLine = {
-              id: `mobile-${Date.now()}-${Math.random()}`,
-              role: 'host',
-              displayName: user?.fullName || 'Host',
-              text: finalTranscript.trim(),
-              timestamp: Date.now(),
-              isFinal: true,
-              startTime: Date.now(),
-              endTime: Date.now()
-            };
+          recognition.onresult = (event: any) => {
+            console.log('📝 [MOBILE] onresult triggered, results:', event.results.length);
             
-            setTranscriptLines(prev => {
-              const updated = [...prev, newLine];
-              // Save to localStorage
-              if (activeRoom?._id) {
-                const key = `transcript-session-${activeRoom._id}`;
-                localStorage.setItem(key, JSON.stringify(updated));
+            let interimTranscript = '';
+            let finalTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript;
+              const isFinal = event.results[i].isFinal;
+              const confidence = event.results[i][0].confidence;
+              
+              console.log(`📝 [MOBILE] Result ${i}:`, {
+                transcript,
+                isFinal,
+                confidence
+              });
+              
+              if (isFinal) {
+                finalTranscript += transcript + ' ';
+              } else {
+                interimTranscript += transcript;
               }
-              return updated;
+            }
+            
+            console.log('📝 [MOBILE] Processed:', { 
+              final: finalTranscript, 
+              interim: interimTranscript 
             });
-          } else if (interimTranscript) {
-            // Update or add interim transcript
-            setTranscriptLines(prev => {
-              const filtered = prev.filter(line => line.isFinal);
-              const interimLine: TranscriptLine = {
-                id: 'mobile-interim',
+            
+            if (finalTranscript) {
+              console.log('✅ [MOBILE] Adding FINAL transcript:', finalTranscript);
+              // Add final transcript to transcript lines
+              const newLine: TranscriptLine = {
+                id: `mobile-${Date.now()}-${Math.random()}`,
                 role: 'host',
                 displayName: user?.fullName || 'Host',
-                text: interimTranscript.trim(),
+                text: finalTranscript.trim(),
                 timestamp: Date.now(),
-                isFinal: false,
+                isFinal: true,
                 startTime: Date.now(),
                 endTime: Date.now()
               };
-              return [...filtered, interimLine];
-            });
-          }
-        };
-        
-        recognition.onerror = (event: any) => {
-          console.error('❌ [MOBILE] Speech recognition error:', event.error);
-          if (event.error === 'no-speech') {
-            console.log('🔇 [MOBILE] No speech detected, continuing...');
-          } else if (event.error === 'aborted') {
-            console.log('🛑 [MOBILE] Recognition aborted');
-            setIsMobileRecording(false);
-            setStatus('stopped');
-          } else {
-            toast.error(`Speech recognition error: ${event.error}`);
-            setIsMobileRecording(false);
-            setStatus('error');
-          }
-        };
-        
-        recognition.onend = () => {
-          console.log('🛑 [MOBILE] Speech recognition ended');
-          // Auto-restart if still in recording state
-          if (isMobileRecording && status === 'recording') {
-            console.log('🔄 [MOBILE] Auto-restarting recognition');
-            try {
-              recognition.start();
-            } catch (error) {
-              console.error('❌ [MOBILE] Failed to restart recognition:', error);
+              
+              setTranscriptLines(prev => {
+                const updated = [...prev, newLine];
+                console.log(`📋 [MOBILE] Total transcripts: ${updated.length}`);
+                // Save to localStorage
+                if (activeRoom?._id) {
+                  const key = `transcript-session-${activeRoom._id}`;
+                  localStorage.setItem(key, JSON.stringify(updated));
+                }
+                return updated;
+              });
+              
+              toast.success('✅ Transcript captured!', { duration: 1000 });
+            } else if (interimTranscript) {
+              console.log('🔄 [MOBILE] Updating INTERIM transcript:', interimTranscript);
+              // Update or add interim transcript
+              setTranscriptLines(prev => {
+                const filtered = prev.filter(line => line.isFinal);
+                const interimLine: TranscriptLine = {
+                  id: 'mobile-interim',
+                  role: 'host',
+                  displayName: user?.fullName || 'Host',
+                  text: interimTranscript.trim(),
+                  timestamp: Date.now(),
+                  isFinal: false,
+                  startTime: Date.now(),
+                  endTime: Date.now()
+                };
+                return [...filtered, interimLine];
+              });
             }
-          }
-        };
-        
-        mobileRecognitionRef.current = recognition;
-        console.log('✅ [MOBILE] Speech recognition initialized');
+          };
+          
+          recognition.onerror = (event: any) => {
+            console.error('❌ [MOBILE] Speech recognition error:', event.error);
+            console.error('❌ [MOBILE] Error details:', event);
+            
+            if (event.error === 'no-speech') {
+              console.log('🔇 [MOBILE] No speech detected, will continue...');
+              // Don't show error for no-speech, just continue
+            } else if (event.error === 'aborted') {
+              console.log('🛑 [MOBILE] Recognition aborted by user');
+              setIsMobileRecording(false);
+              setStatus('stopped');
+            } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+              console.error('🚫 [MOBILE] Microphone permission denied!');
+              toast.error('Microphone permission denied. Please allow microphone access.');
+              setIsMobileRecording(false);
+              setStatus('error');
+            } else if (event.error === 'network') {
+              console.error('📡 [MOBILE] Network error - may need internet for speech recognition');
+              toast.error('Network error. Speech recognition needs internet connection.');
+            } else {
+              toast.error(`Speech error: ${event.error}`);
+              setIsMobileRecording(false);
+              setStatus('error');
+            }
+          };
+          
+          let shouldContinue = true;
+          
+          recognition.onend = () => {
+            console.log('🛑 [MOBILE] Speech recognition ended');
+            console.log('🛑 [MOBILE] Current status:', status, 'shouldContinue:', shouldContinue);
+            
+            // Auto-restart if still in recording state
+            setTimeout(() => {
+              if (shouldContinue && mobileRecognitionRef.current) {
+                console.log('🔄 [MOBILE] Auto-restarting recognition...');
+                try {
+                  mobileRecognitionRef.current.start();
+                } catch (error: any) {
+                  console.error('❌ [MOBILE] Failed to restart recognition:', error);
+                  if (error.message?.includes('already started')) {
+                    console.log('ℹ️ [MOBILE] Recognition already running');
+                  }
+                }
+              }
+            }, 100);
+          };
+          
+          mobileRecognitionRef.current = recognition;
+          (mobileRecognitionRef.current as any).shouldContinue = () => shouldContinue;
+          (mobileRecognitionRef.current as any).setShouldContinue = (value: boolean) => {
+            shouldContinue = value;
+          };
+          
+          console.log('✅ [MOBILE] Speech recognition fully initialized and ready');
+        } catch (error) {
+          console.error('❌ [MOBILE] Error creating recognition instance:', error);
+          toast.error('Failed to initialize speech recognition');
+        }
       } else {
-        console.warn('⚠️ [MOBILE] webkitSpeechRecognition not available');
-        toast.error('Speech recognition not supported on this browser');
+        console.warn('⚠️ [MOBILE] webkitSpeechRecognition NOT available');
+        console.warn('⚠️ [MOBILE] Available on window:', Object.keys(window).filter(k => k.includes('Speech')));
+        toast.error('Speech recognition not supported on this browser. Please use Chrome on Android.');
       }
+    } else {
+      console.log('💻 [DESKTOP] Not a mobile device, will use ASR');
     }
     
     return () => {
       // Cleanup mobile recognition on unmount
       if (mobileRecognitionRef.current) {
+        console.log('🧹 [MOBILE] Cleaning up speech recognition');
         try {
+          (mobileRecognitionRef.current as any).setShouldContinue(false);
           mobileRecognitionRef.current.stop();
           mobileRecognitionRef.current = null;
         } catch (error) {
@@ -577,26 +641,52 @@ const AudioCapture = () => {
     // Check if mobile device
     const isMobile = isMobileDevice();
     console.log('📱 [START] Is mobile device:', isMobile);
+    console.log('📱 [START] Mobile recognition ref:', mobileRecognitionRef.current);
     
     // Mobile device - use webkitSpeechRecognition
     if (isMobile && mobileRecognitionRef.current) {
-      console.log('🎤 [MOBILE] Starting mobile speech recognition');
+      console.log('🎤 [MOBILE] Starting mobile speech recognition...');
       try {
         setStatus('connecting');
+        
+        // Set shouldContinue flag to true
+        (mobileRecognitionRef.current as any).setShouldContinue(true);
+        
+        // Request microphone permission first
+        console.log('🎤 [MOBILE] Requesting microphone permission...');
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('✅ [MOBILE] Microphone permission granted');
+        
+        // Start recognition
+        console.log('🎤 [MOBILE] Calling recognition.start()...');
         mobileRecognitionRef.current.start();
         setIsMobileRecording(true);
-        toast.success('Mobile recording started');
-        console.log('✅ [MOBILE] Speech recognition started successfully');
-        return;
-      } catch (error) {
+        
+        console.log('✅ [MOBILE] Speech recognition start command sent');
+        toast.success('🎤 Starting mobile recording... speak now!');
+      } catch (error: any) {
         console.error('❌ [MOBILE] Failed to start recognition:', error);
-        toast.error('Failed to start mobile recording');
+        console.error('❌ [MOBILE] Error name:', error.name);
+        console.error('❌ [MOBILE] Error message:', error.message);
+        
+        if (error.name === 'NotAllowedError' || error.message?.includes('permission')) {
+          toast.error('🚫 Microphone permission denied. Please allow microphone access in browser settings.');
+        } else if (error.message?.includes('already started')) {
+          console.log('ℹ️ [MOBILE] Recognition already running, setting status');
+          setStatus('recording');
+          setIsMobileRecording(true);
+          toast.success('🎤 Mobile recording active!');
+        } else {
+          toast.error(`Failed to start: ${error.message}`);
+        }
         setStatus('error');
         return;
       }
+      return;
     }
     
     // Desktop device - use ASR WebSocket (existing code)
+    console.log('💻 [DESKTOP] Using ASR WebSocket');
     // Update debug info
     setDebugInfo(prev => ({
       ...prev,
@@ -693,6 +783,9 @@ const AudioCapture = () => {
     if (isMobileDevice() && mobileRecognitionRef.current && isMobileRecording) {
       console.log('🛑 [MOBILE] Stopping mobile speech recognition');
       try {
+        // Set shouldContinue to false to prevent auto-restart
+        (mobileRecognitionRef.current as any).setShouldContinue(false);
+        
         setIsMobileRecording(false);
         mobileRecognitionRef.current.stop();
         setStatus('stopped');
