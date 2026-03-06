@@ -97,14 +97,14 @@ const LoadingScreen = () => {
             className="absolute bottom-32 text-center"
           >
             <h2 className="text-2xl font-bold text-white mb-2">
-              Automatic Poll System
+              T SASHI PAVAN POLL SYSTEM
             </h2>
             <motion.p
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity }}
               className="text-gray-400"
             >
-              Initializing AI-powered polling...
+              Initializing T SASHI PAVAN polling...
             </motion.p>
           </motion.div>
         </motion.div>
